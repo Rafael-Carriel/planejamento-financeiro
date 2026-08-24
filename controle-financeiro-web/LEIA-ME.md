@@ -45,6 +45,17 @@ apertando e os últimos lançamentos.
 mês, divisão por categoria, busca por descrição/categoria/observação, filtro por
 categoria, ordenação e exportação em CSV.
 
+**Recorrências** guarda o que se repete todo mês — salário, aluguel, assinatura,
+o boleto em 3x. Você cadastra uma vez, dizendo a data da primeira vez e se
+repete *sempre* ou um *número de vezes*. Nada é lançado automaticamente: cada mês
+mostra a ocorrência como **prevista**, e um clique em *Lançar* transforma a
+previsão em lançamento de verdade. Dá para pausar (⏸) sem perder o cadastro.
+
+**Previsão** projeta os próximos 3, 6 ou 12 meses a partir das recorrências:
+quanto entra, quanto sai, o saldo de cada mês e o acumulado. Cada mês vem com a
+lista do que está previsto, e você pode confirmar um lançamento de mês futuro
+direto dali — útil para o boleto que já foi pago adiantado.
+
 **Categorias** lista o catálogo básico (o mesmo do app do celular, fixo) e as
 categorias criadas por você, que podem ter emoji e cor ajustados. O nome de uma
 categoria criada não muda: o lançamento guarda a categoria como texto, então
@@ -68,13 +79,13 @@ src/
   utilitarios/           datas, formatação, CSV, estilo
   dados/                 catálogo básico de categorias
   servicos/              acesso ao Firestore e à autenticação
-  dominio/               contas puras: resumos, totais, planejamento
+  dominio/               contas puras: resumos, totais, planejamento, recorrências
   contextos/             sessão, mês selecionado, dados do mês, lançamento
   componentes/           peças de tela reutilizadas
   paginas/               uma por rota
 ```
 
-Três decisões que valem saber antes de mexer:
+Quatro decisões que valem saber antes de mexer:
 
 **Uma assinatura de transações para todo o app.** `ContextoDados` mantém o único
 `onSnapshot` do mês; as páginas consomem a mesma lista. Se cada página abrisse a
@@ -90,11 +101,22 @@ categoria acontece no navegador, sobre a lista já carregada.
 Gravar valor negativo quebraria as regras do Firestore e os totais do app do
 celular.
 
+**Recorrência não grava nada sozinha.** A coleção `recorrencias` guarda só a
+regra (valor, dia do mês, início, quantas parcelas). As ocorrências de um mês
+são calculadas na hora, a partir da regra e das transações daquele mês. Uma
+previsão desaparece quando existe uma transação com `recorrenciaId` igual ao id
+da recorrência dentro do mês — esse campo é a única trava contra lançar duas
+vezes. Foi escolhido assim para não depender de Cloud Function nem de tarefa
+agendada: sem servidor rodando, nada some e nada duplica se o app ficar semanas
+fechado.
+
 ## Regras do Firestore
 
 As regras são as mesmas para os dois apps e ficam num só lugar:
 `../controle_financeiro/firestore.rules`. Elas cobrem `usuarios/{uid}` e as
-subcoleções `transacoes`, `categorias` e `orcamentos`, com validação de campos.
+subcoleções `transacoes`, `categorias`, `orcamentos` e `recorrencias`, com
+validação de campos. O app do celular não conhece as recorrências ainda, e não
+precisa: ele ignora a coleção nova e o campo `recorrenciaId` das transações.
 Para publicar:
 
 ```powershell
