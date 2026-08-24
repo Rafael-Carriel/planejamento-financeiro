@@ -1,0 +1,34 @@
+# Ignorados na raiz, valendo para os dois aplicativos.
+# Cada pasta ainda tem o seu .gitignore com as regras próprias do Flutter e do Vite.
+
+# Dependências e builds
+node_modules/
+dist/
+dist-ssr/
+build/
+.dart_tool/
+
+# Chaves e configuração de máquina. Nada de .env no repositório —
+# as chaves da web são públicas por natureza, mas o arquivo é de cada máquina.
+.env
+.env.*
+!.env.example
+
+# Arquivos gerados pelo flutterfire/firebase na máquina de quem programa
+lib/firebase_options.dart
+google-services.json
+GoogleService-Info.plist
+.firebase/
+firebase-debug.log
+
+# Editores e sistema
+.vscode/
+.idea/
+*.iml
+.DS_Store
+Thumbs.db
+
+# Logs e artefatos
+*.log
+*.apk
+.backup_app/

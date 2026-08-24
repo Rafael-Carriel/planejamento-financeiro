@@ -1,0 +1,39 @@
+# Flutter / Dart
+.dart_tool/
+.packages
+build/
+.flutter-plugins
+.flutter-plugins-dependencies
+pubspec.lock
+*.iml
+.idea/
+.vscode/
+*.log
+
+# Android
+android/.gradle/
+android/local.properties
+android/key.properties
+*.jks
+
+# iOS / macOS
+ios/Pods/
+ios/.symlinks/
+ios/Flutter/Flutter.framework
+ios/Flutter/Generated.xcconfig
+ios/Flutter/flutter_export_environment.sh
+**/.DS_Store
+
+# Firebase - arquivos gerados na sua máquina pelo flutterfire configure.
+# Não são segredos, mas ficam fora do git para cada dev gerar o seu.
+lib/firebase_options.dart
+android/app/google-services.json
+ios/Runner/GoogleService-Info.plist
+macos/Runner/GoogleService-Info.plist
+.firebase/
+
+# Backup criado pelo configurar.ps1
+.backup_app/
+
+# APK copiado para a raiz pelo gerar-apk.ps1
+*.apk

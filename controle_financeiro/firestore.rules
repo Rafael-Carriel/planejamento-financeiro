@@ -1,0 +1,162 @@
+rules_version = '2';
+
+// Regras de segurança do Controle Financeiro.
+//
+// Princípio: cada usuário só alcança documentos dentro de usuarios/{seu-uid}.
+// Como as transações são subcoleção do próprio usuário, não existe caminho
+// pelo qual alguém leia dados de outra pessoa.
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    match /usuarios/{uid} {
+      allow read: if ehDono(uid);
+      allow create, update: if ehDono(uid) && perfilValido();
+      // Exclusão de conta deve passar por um fluxo administrativo.
+      allow delete: if false;
+
+      match /transacoes/{transacaoId} {
+        allow read, delete: if ehDono(uid);
+        allow create, update: if ehDono(uid) && transacaoValida();
+      }
+
+      // Categorias criadas pelo usuário, que se somam ao catálogo básico do
+      // código. Valem para o app do celular e para o app web.
+      match /categorias/{categoriaId} {
+        allow read, delete: if ehDono(uid);
+        allow create, update: if ehDono(uid) && categoriaValida();
+      }
+
+      // Planejamento mensal: um documento por mês, id no formato 'aaaa-mm'.
+      match /orcamentos/{mes} {
+        allow read, delete: if ehDono(uid);
+        allow create, update: if ehDono(uid) && orcamentoValido();
+      }
+
+      // Combinados que se repetem todo mês: salário, aluguel, boleto em
+      // parcelas. Não são lançamentos — nada é gravado em `transacoes` por conta
+      // deles. O app web calcula as ocorrências na hora de mostrar e só grava
+      // transação quando o usuário confirma.
+      match /recorrencias/{recorrenciaId} {
+        allow read, delete: if ehDono(uid);
+        allow create, update: if ehDono(uid) && recorrenciaValida();
+      }
+    }
+
+    // Explícito por clareza: o padrão do Firestore já é negar tudo que não
+    // foi liberado acima.
+    match /{documento=**} {
+      allow read, write: if false;
+    }
+
+    function ehDono(uid) {
+      return request.auth != null && request.auth.uid == uid;
+    }
+
+    function perfilValido() {
+      let dados = request.resource.data;
+      return dados.keys().hasOnly(
+        ['nome', 'email', 'criadoEm', 'atualizadoEm', 'tokensFcm']
+      );
+    }
+
+    // Impede lixo no banco mesmo que alguém chame a API por fora do app.
+    function transacaoValida() {
+      let dados = request.resource.data;
+      return dados.keys().hasOnly([
+            'descricao', 'valor', 'tipo', 'categoria',
+            'data', 'observacao', 'recorrenciaId', 'criadoEm', 'atualizadoEm',
+          ])
+        && dados.descricao is string
+        && dados.descricao.size() > 0
+        && dados.descricao.size() <= 120
+        && dados.valor is number
+        && dados.valor > 0
+        && dados.valor <= 100000000
+        && dados.tipo in ['entrada', 'saida']
+        && dados.categoria is string
+        && dados.categoria.size() > 0
+        && dados.categoria.size() <= 60
+        && dados.data is timestamp
+        && (
+          dados.observacao == null
+          || (dados.observacao is string && dados.observacao.size() <= 500)
+        )
+        // Lançamento avulso grava null; o que nasceu de uma recorrência guarda o
+        // id dela. O app do celular não manda este campo, e `hasOnly` aceita a
+        // ausência, então as escritas do Flutter continuam valendo.
+        && (
+          !('recorrenciaId' in dados)
+          || dados.recorrenciaId == null
+          || (dados.recorrenciaId is string && dados.recorrenciaId.size() <= 64)
+        );
+    }
+
+    // Categoria criada pelo usuário. O nome é a chave que liga a categoria aos
+    // lançamentos, por isso o tamanho aqui é o mesmo permitido em
+    // `transacaoValida` — 60 caracteres.
+    function categoriaValida() {
+      let dados = request.resource.data;
+      return dados.keys().hasOnly([
+            'nome', 'tipo', 'emoji', 'cor', 'criadoEm', 'atualizadoEm',
+          ])
+        && dados.nome is string
+        && dados.nome.size() > 0
+        && dados.nome.size() <= 60
+        && dados.tipo in ['entrada', 'saida']
+        && dados.emoji is string
+        && dados.emoji.size() > 0
+        && dados.emoji.size() <= 16
+        && dados.cor is string
+        && dados.cor.size() > 0
+        && dados.cor.size() <= 32;
+    }
+
+    // Planejamento do mês. Os limites vêm num mapa
+    // `{ 'Mercado': 800, 'Transporte': 300 }`; o teto de 200 chaves existe só
+    // para impedir que alguém use o documento como depósito de dados.
+    function orcamentoValido() {
+      let dados = request.resource.data;
+      return dados.keys().hasOnly(['mes', 'limites', 'criadoEm', 'atualizadoEm'])
+        && dados.mes is string
+        && dados.mes.size() == 7
+        && dados.limites is map
+        && dados.limites.size() <= 200;
+    }
+
+    // Recorrência: o combinado, não o lançamento. `inicio` é sempre o dia 1º do
+    // primeiro mês da série (o dia da cobrança mora em `diaDoMes`), e `parcelas`
+    // nulo quer dizer "sem fim" — o caso do salário. O teto de 600 parcelas é só
+    // para impedir série absurda; 50 anos de boleto já é bastante.
+    function recorrenciaValida() {
+      let dados = request.resource.data;
+      return dados.keys().hasOnly([
+            'descricao', 'valor', 'tipo', 'categoria', 'diaDoMes',
+            'inicio', 'parcelas', 'ativa', 'observacao',
+            'criadoEm', 'atualizadoEm',
+          ])
+        && dados.descricao is string
+        && dados.descricao.size() > 0
+        && dados.descricao.size() <= 120
+        && dados.valor is number
+        && dados.valor > 0
+        && dados.valor <= 100000000
+        && dados.tipo in ['entrada', 'saida']
+        && dados.categoria is string
+        && dados.categoria.size() > 0
+        && dados.categoria.size() <= 60
+        && dados.diaDoMes is int
+        && dados.diaDoMes >= 1
+        && dados.diaDoMes <= 31
+        && dados.inicio is timestamp
+        && (
+          dados.parcelas == null
+          || (dados.parcelas is int && dados.parcelas >= 1 && dados.parcelas <= 600)
+        )
+        && dados.ativa is bool
+        && (
+          dados.observacao == null
+          || (dados.observacao is string && dados.observacao.size() <= 500)
+        );
+    }
+  }
+}
