@@ -1,16 +1,20 @@
-import { useEffect, useMemo, useState } from 'react';
+import { Fragment, useEffect, useMemo, useState } from 'react';
 
 import { BarrasDeCategoria } from '../componentes/BarrasDeCategoria';
 import { CabecalhoDaPagina } from '../componentes/CabecalhoDaPagina';
 import { CartaoResumo } from '../componentes/CartaoResumo';
 import { Dinheiro } from '../componentes/Dinheiro';
 import { Carregando, EstadoVazio, FaixaDeErro } from '../componentes/Estados';
+import { ListaDeLancamentos } from '../componentes/ListaDeLancamentos';
+import { ListaDePrevistos } from '../componentes/ListaDePrevistos';
 import { useAutenticacao } from '../contextos/ContextoAutenticacao';
+import { useDados } from '../contextos/ContextoDados';
 import { useMes } from '../contextos/ContextoMes';
 import { mediaMensal, resumosPorMes, totaisPorCategoria } from '../dominio/calculos';
+import { ocorrenciasDoMes } from '../dominio/recorrencias';
 import { mensagemDeErro } from '../servicos/servicoAutenticacao';
 import { lerTransacoes } from '../servicos/servicoTransacoes';
-import type { ResumoDeMes, Transacao } from '../tipos';
+import type { OcorrenciaPrevista, ResumoDeMes, Transacao } from '../tipos';
 import { baixarCsv, transacoesParaCsv } from '../utilitarios/csv';
 import {
   chaveDoMes,
@@ -22,25 +26,20 @@ import {
 } from '../utilitarios/datas';
 import { formatarMoeda, formatarPorcentagem } from '../utilitarios/formatadores';
 
-/// Histórico: como os meses se comparam.
-///
-/// Esta é a única tela que lê fora do mês selecionado, e por isso faz uma
-/// consulta própria — uma leitura só, sem assinatura ao vivo. Manter um
-/// observador de doze meses aberto o tempo todo custaria caro em leituras para
-/// uma tela que se consulta de vez em quando.
-
 const PERIODOS = [6, 12, 24] as const;
 type Periodo = (typeof PERIODOS)[number];
 
 export function Historico() {
   const { usuario } = useAutenticacao();
   const { mes, chave, definirMes } = useMes();
+  const { recorrencias } = useDados();
   const uid = usuario?.uid ?? null;
 
   const [quantidade, definirQuantidade] = useState<Periodo>(12);
   const [transacoes, definirTransacoes] = useState<Transacao[]>([]);
   const [carregando, definirCarregando] = useState(true);
   const [erro, definirErro] = useState<string | null>(null);
+  const [expandida, definirExpandida] = useState<string | null>(null);
 
   const meses = useMemo(() => ultimosMeses(mes, quantidade), [mes, quantidade]);
 
@@ -67,8 +66,6 @@ export function Historico() {
         definirCarregando(false);
       });
 
-    // Trocar de mês ou de período dispara outra leitura; a bandeira evita que a
-    // resposta antiga chegue depois e sobrescreva a nova.
     return () => {
       vivo = false;
     };
@@ -115,6 +112,56 @@ export function Historico() {
       `historico-${chaveDoMes(meses[0])}-a-${chaveDoMes(mes)}.csv`,
       transacoesParaCsv(transacoes),
     );
+  }
+
+  const chaveHoje = chaveDoMes(new Date());
+
+  function alternarExpansao(chaveMes: string) {
+    definirExpandida((atual) => (atual === chaveMes ? null : chaveMes));
+  }
+
+  function conteudoExpansao(resumo: ResumoDeMes) {
+    const transacoesDoMes = transacoes.filter((t) => chaveDoMes(t.data) === resumo.chave);
+    const ehFuturo = resumo.chave > chaveHoje;
+
+    if (ehFuturo) {
+      const mesData = deChaveDoMes(resumo.chave);
+      const ocorrencias: OcorrenciaPrevista[] = ocorrenciasDoMes(
+        recorrencias,
+        mesData,
+        transacoesDoMes,
+      );
+      const temAlgo = transacoesDoMes.length > 0 || ocorrencias.length > 0;
+
+      if (!temAlgo) {
+        return (
+          <p style={{ padding: '14px 18px', color: 'var(--tinta-fraca)', fontSize: '0.85rem' }}>
+            Nenhuma previsão ou lançamento para este mês.
+          </p>
+        );
+      }
+
+      return (
+        <>
+          {transacoesDoMes.length > 0 ? (
+            <ListaDeLancamentos transacoes={transacoesDoMes} comDataNaLinha />
+          ) : null}
+          {ocorrencias.length > 0 ? (
+            <ListaDePrevistos ocorrencias={ocorrencias} semAcoes comMes />
+          ) : null}
+        </>
+      );
+    }
+
+    if (transacoesDoMes.length === 0) {
+      return (
+        <p style={{ padding: '14px 18px', color: 'var(--tinta-fraca)', fontSize: '0.85rem' }}>
+          Nenhum lançamento registrado neste mês.
+        </p>
+      );
+    }
+
+    return <ListaDeLancamentos transacoes={transacoesDoMes} comDataNaLinha />;
   }
 
   return (
@@ -254,7 +301,7 @@ export function Historico() {
                     <span className="legenda-marca" style={{ background: 'var(--saida)' }} />
                     Saídas
                   </span>
-                  <span className="legenda-item">Clique numa linha da tabela para abrir o mês.</span>
+                  <span className="legenda-item">Clique numa linha da tabela para ver os detalhes.</span>
                 </div>
               </div>
             </section>
@@ -262,7 +309,7 @@ export function Historico() {
             <section className="cartao">
               <div className="cartao-cabeca">
                 <h2>Mês a mês</h2>
-                <span className="texto-miudo">do mais recente para o mais antigo</span>
+                <span className="texto-miudo">clique para expandir</span>
               </div>
               <div className="cartao-corpo-sem-topo" style={{ padding: 0, overflowX: 'auto' }}>
                 <table className="tabela tabela-clicavel">
@@ -276,33 +323,75 @@ export function Historico() {
                     </tr>
                   </thead>
                   <tbody>
-                    {[...resumos].reverse().map((resumo) => (
-                      <tr
-                        key={resumo.chave}
-                        className={resumo.chave === chave ? 'linha-destacada' : undefined}
-                        onClick={() => definirMes(deChaveDoMes(resumo.chave))}
-                        onKeyDown={(evento) => {
-                          if (evento.key !== 'Enter' && evento.key !== ' ') return;
-                          evento.preventDefault();
-                          definirMes(deChaveDoMes(resumo.chave));
-                        }}
-                        tabIndex={0}
-                        aria-label={`Abrir ${rotuloDoMes(resumo.inicio)} nas outras telas`}
-                        title="Abrir este mês nas outras telas"
-                      >
-                        <td>{rotuloDoMes(resumo.inicio)}</td>
-                        <td>
-                          <Dinheiro valor={resumo.entradas} cor="entrada" />
-                        </td>
-                        <td>
-                          <Dinheiro valor={resumo.saidas} cor="saida" />
-                        </td>
-                        <td>
-                          <Dinheiro valor={resumo.saldo} cor="saldo" comSinal />
-                        </td>
-                        <td className="dinheiro dinheiro-neutro">{resumo.quantidade}</td>
-                      </tr>
-                    ))}
+                    {[...resumos].reverse().map((resumo) => {
+                      const estaExpandida = expandida === resumo.chave;
+                      const ehFuturo = resumo.chave > chaveHoje;
+
+                      return (
+                        <Fragment key={resumo.chave}>
+                          <tr
+                            className={
+                              resumo.chave === chave
+                                ? 'linha-destacada'
+                                : undefined
+                            }
+                            onClick={() => alternarExpansao(resumo.chave)}
+                            onKeyDown={(evento) => {
+                              if (evento.key !== 'Enter' && evento.key !== ' ') return;
+                              evento.preventDefault();
+                              alternarExpansao(resumo.chave);
+                            }}
+                            tabIndex={0}
+                            aria-expanded={estaExpandida}
+                            title={
+                              estaExpandida
+                                ? 'Fechar detalhes'
+                                : 'Ver entradas e saídas deste mês'
+                            }
+                          >
+                            <td>
+                              {rotuloDoMes(resumo.inicio)}
+                              {ehFuturo ? (
+                                <span
+                                  className="selo-situacao selo-sem-limite"
+                                  style={{ marginLeft: 8, fontSize: '0.65rem' }}
+                                >
+                                  previsão
+                                </span>
+                              ) : null}
+                            </td>
+                            <td>
+                              <Dinheiro valor={resumo.entradas} cor="entrada" />
+                            </td>
+                            <td>
+                              <Dinheiro valor={resumo.saidas} cor="saida" />
+                            </td>
+                            <td>
+                              <Dinheiro valor={resumo.saldo} cor="saldo" comSinal />
+                            </td>
+                            <td className="dinheiro dinheiro-neutro">
+                              {resumo.quantidade}
+                            </td>
+                          </tr>
+                          {estaExpandida ? (
+                            <tr>
+                              <td
+                                colSpan={5}
+                                style={{
+                                  padding: 0,
+                                  background: 'var(--cartao)',
+                                  borderBottom: '2px solid var(--borda-forte)',
+                                }}
+                              >
+                                <div style={{ padding: '4px 18px 12px' }}>
+                                  {conteudoExpansao(resumo)}
+                                </div>
+                              </td>
+                            </tr>
+                          ) : null}
+                        </Fragment>
+                      );
+                    })}
                   </tbody>
                 </table>
               </div>

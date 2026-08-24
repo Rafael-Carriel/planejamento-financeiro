@@ -400,6 +400,20 @@ button {
   font-weight: 600;
 }
 
+.marca-logo {
+  width: 38px;
+  height: 38px;
+  border-radius: 9px;
+  object-fit: contain;
+}
+
+.marca-logo-mini {
+  width: 24px;
+  height: 24px;
+  border-radius: 6px;
+  object-fit: contain;
+}
+
 .marca-nome {
   font-family: var(--fonte-titulo);
   font-size: 0.95rem;

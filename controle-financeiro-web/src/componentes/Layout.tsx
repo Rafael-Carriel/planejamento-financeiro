@@ -36,12 +36,10 @@ export function Layout() {
     <div className="moldura">
       <aside className="barra-lateral">
         <div className="marca">
-          <span className="marca-selo" aria-hidden="true">
-            R$
-          </span>
+          <img src="/logo.png" alt="Planeja" className="marca-logo" />
           <span className="marca-nome">
-            Controle Financeiro
-            <span>entradas e saídas</span>
+            Planeja
+            <span>planejamento financeiro</span>
           </span>
         </div>
 
@@ -87,7 +85,8 @@ export function Layout() {
         {/* Tira só do celular: no telefone a barra lateral virou barra inferior
             e perdeu o rodapé, então a conta precisa de outro caminho. */}
         <div className="tira-conta">
-          <span className="marca-nome">Controle Financeiro</span>
+          <img src="/logo.png" alt="Planeja" className="marca-logo-mini" />
+          <span className="marca-nome">Planeja</span>
           <button
             type="button"
             className="inicial"
