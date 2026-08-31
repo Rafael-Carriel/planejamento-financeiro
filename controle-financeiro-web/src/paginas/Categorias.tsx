@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
 
 import { CabecalhoDaPagina } from '../componentes/CabecalhoDaPagina';
+import { DetalheCategoria } from '../componentes/DetalheCategoria';
 import { Dinheiro } from '../componentes/Dinheiro';
 import { Carregando, EstadoVazio, FaixaDeErro } from '../componentes/Estados';
 import { FormularioDeCategoria } from '../componentes/FormularioDeCategoria';
@@ -39,6 +40,7 @@ export function Categorias() {
   const [paraExcluir, definirParaExcluir] = useState<Categoria | null>(null);
   const [excluindo, definirExcluindo] = useState(false);
   const [erroAoExcluir, definirErroAoExcluir] = useState<string | null>(null);
+  const [detalheAberto, definirDetalheAberto] = useState<Categoria | null>(null);
 
   const uso = useMemo(() => {
     const mapa = new Map<string, Uso>();
@@ -90,7 +92,19 @@ export function Categorias() {
           const dados = uso.get(categoria.nome);
 
           return (
-            <li className="lancamento" key={categoria.id}>
+            <li
+              className="lancamento lancamento-clicavel"
+              key={categoria.id}
+              onClick={() => definirDetalheAberto(categoria)}
+              onKeyDown={(evento) => {
+                if (evento.key !== 'Enter' && evento.key !== ' ') return;
+                evento.preventDefault();
+                definirDetalheAberto(categoria);
+              }}
+              tabIndex={0}
+              role="button"
+              title={`Ver histórico e previsão de ${categoria.nome}`}
+            >
               <span
                 className="lancamento-selo"
                 style={comVariaveis({
@@ -142,7 +156,10 @@ export function Categorias() {
                     <button
                       type="button"
                       className="acao-miuda"
-                      onClick={() => abrirEdicao(categoria)}
+                      onClick={(evento) => {
+                        evento.stopPropagation();
+                        abrirEdicao(categoria);
+                      }}
                       aria-label={`Ajustar ${categoria.nome}`}
                       title="Ajustar emoji e cor"
                     >
@@ -151,7 +168,10 @@ export function Categorias() {
                     <button
                       type="button"
                       className="acao-miuda acao-miuda-perigo"
-                      onClick={() => definirParaExcluir(categoria)}
+                      onClick={(evento) => {
+                        evento.stopPropagation();
+                        definirParaExcluir(categoria);
+                      }}
                       aria-label={`Excluir ${categoria.nome}`}
                       title="Excluir"
                     >
@@ -314,6 +334,13 @@ export function Categorias() {
             {erroAoExcluir ? <div className="aviso aviso-erro">{erroAoExcluir}</div> : null}
           </div>
         </Modal>
+      ) : null}
+
+      {detalheAberto ? (
+        <DetalheCategoria
+          categoria={detalheAberto}
+          aoFechar={() => definirDetalheAberto(null)}
+        />
       ) : null}
     </>
   );

@@ -911,6 +911,16 @@ button {
   background: #fafbfe;
 }
 
+.lancamento-clicavel {
+  cursor: pointer;
+}
+
+.lancamento-clicavel:focus-visible {
+  outline: 2px solid var(--destaque);
+  outline-offset: -2px;
+  background: var(--destaque-claro);
+}
+
 .lancamento-selo {
   display: grid;
   place-items: center;
