@@ -5,6 +5,7 @@ import { CabecalhoDaPagina } from '../componentes/CabecalhoDaPagina';
 import { CartaoResumo } from '../componentes/CartaoResumo';
 import { Dinheiro } from '../componentes/Dinheiro';
 import { Carregando, EstadoVazio, FaixaDeErro } from '../componentes/Estados';
+import { ListaDeLancamentos } from '../componentes/ListaDeLancamentos';
 import { ListaDePrevistos } from '../componentes/ListaDePrevistos';
 import { useAutenticacao } from '../contextos/ContextoAutenticacao';
 import { useDados } from '../contextos/ContextoDados';
@@ -14,6 +15,7 @@ import { mensagemDeErro } from '../servicos/servicoAutenticacao';
 import { lerTransacoes } from '../servicos/servicoTransacoes';
 import type { Transacao } from '../tipos';
 import {
+  chaveDoMes,
   deChaveDoMes,
   inicioDoProximoMes,
   proximosMeses,
@@ -113,7 +115,12 @@ export function Previsao() {
     return `${Math.max(2, (valor / maiorBarra) * 100)}%`;
   }
 
-  const comOcorrencias = previsao.filter((mesPrevisto) => mesPrevisto.ocorrencias.length > 0);
+  const comMovimento = previsao.filter(
+    (mesPrevisto) =>
+      mesPrevisto.entradasLancadas > 0 ||
+      mesPrevisto.saidasLancadas > 0 ||
+      mesPrevisto.ocorrencias.length > 0,
+  );
   const primeiroNegativo = previsao.find((mesPrevisto) => mesPrevisto.acumulado < 0) ?? null;
 
   return (
@@ -330,13 +337,13 @@ export function Previsao() {
               </div>
             </section>
 
-            {comOcorrencias.length === 0 ? (
+            {comMovimento.length === 0 ? (
               <div className="cartao">
                 <div className="cartao-corpo">
                   <EstadoVazio
                     selo="◔"
-                    titulo="Nenhuma recorrência alcança estes meses"
-                    descricao="Os números acima vêm só do que já está lançado. Cadastre o que se repete e os próximos meses passam a se antecipar."
+                    titulo="Nenhum lançamento ou recorrência estes meses"
+                    descricao="Cadastre lançamentos avulsos ou recorrências para ver os detalhes aqui."
                     acao={
                       <Link className="botao botao-principal" to="/recorrencias">
                         Cadastrar recorrências
@@ -346,22 +353,39 @@ export function Previsao() {
                 </div>
               </div>
             ) : (
-              comOcorrencias.map((mesPrevisto) => (
-                <section className="cartao" key={mesPrevisto.chave}>
-                  <div className="cartao-cabeca">
-                    <h2>{rotuloDoMes(mesPrevisto.inicio)}</h2>
-                    <span className="texto-miudo">
-                      saldo previsto <Dinheiro valor={mesPrevisto.saldo} cor="saldo" comSinal />
-                    </span>
-                  </div>
-                  <div className="cartao-corpo-sem-topo">
-                    <ListaDePrevistos
-                      ocorrencias={mesPrevisto.ocorrencias}
-                      aoLancar={() => definirVersao((atual) => atual + 1)}
-                    />
-                  </div>
-                </section>
-              ))
+              comMovimento.map((mesPrevisto) => {
+                const transacoesDoMes = transacoes.filter(
+                  (t) => chaveDoMes(t.data) === mesPrevisto.chave,
+                );
+                const temLancamentos = transacoesDoMes.length > 0;
+                const temOcorrencias = mesPrevisto.ocorrencias.length > 0;
+
+                return (
+                  <section className="cartao" key={mesPrevisto.chave}>
+                    <div className="cartao-cabeca">
+                      <h2>{rotuloDoMes(mesPrevisto.inicio)}</h2>
+                      <span className="texto-miudo">
+                        saldo previsto <Dinheiro valor={mesPrevisto.saldo} cor="saldo" comSinal />
+                      </span>
+                    </div>
+                    <div className="cartao-corpo-sem-topo">
+                      {temLancamentos ? (
+                        <ListaDeLancamentos
+                          transacoes={transacoesDoMes}
+                          comDataNaLinha
+                          semAcoes
+                        />
+                      ) : null}
+                      {temOcorrencias ? (
+                        <ListaDePrevistos
+                          ocorrencias={mesPrevisto.ocorrencias}
+                          aoLancar={() => definirVersao((atual) => atual + 1)}
+                        />
+                      ) : null}
+                    </div>
+                  </section>
+                );
+              })
             )}
           </>
         )}

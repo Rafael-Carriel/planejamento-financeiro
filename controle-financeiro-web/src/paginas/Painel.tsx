@@ -111,6 +111,19 @@ export function Painel() {
           <Carregando mensagem="Buscando os lançamentos do mês…" />
         ) : (
           <>
+            {/* Tutorial do Painel */}
+            {resumo.quantidade === 0 && (
+              <section className="cartao">
+                <div className="cartao-corpo">
+                  <p className="texto-apoio" style={{ margin: 0 }}>
+                    💡 <strong>Bem-vindo ao Painel!</strong> Aqui você vê tudo do mês de uma vez:
+                    o que entrou, o que saiu, e o que falta confirmar. Comece clicando em
+                    <strong> "+ Receita"</strong> ou <strong>"+ Despesa"</strong> para registrar seus primeiros lançamentos.
+                  </p>
+                </div>
+              </section>
+            )}
+
             <div className="grade-resumo">
               <CartaoResumo
                 rotulo="Entradas"

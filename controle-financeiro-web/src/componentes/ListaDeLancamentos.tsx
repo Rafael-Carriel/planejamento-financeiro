@@ -24,6 +24,9 @@ interface Propriedades {
   /// Quando `true`, mostra a data completa em cada linha em vez de agrupar por
   /// dia. Serve para listas que atravessam meses, como a do histórico.
   comDataNaLinha?: boolean;
+  /// Quando `true`, esconde botões de editar/excluir e mostra selo de situação.
+  /// Usado na previsão para meses futuros, onde o lançamento ainda não venceu.
+  semAcoes?: boolean;
 }
 
 interface GrupoDoDia {
@@ -54,7 +57,7 @@ function agruparPorDia(transacoes: Transacao[]): GrupoDoDia[] {
   return [...grupos.values()];
 }
 
-export function ListaDeLancamentos({ transacoes, comDataNaLinha = false }: Propriedades) {
+export function ListaDeLancamentos({ transacoes, comDataNaLinha = false, semAcoes = false }: Propriedades) {
   const { descreverCategoria, removerTransacao } = useDados();
   const { abrirEdicao } = useLancamento();
   const [paraExcluir, definirParaExcluir] = useState<Transacao | null>(null);
@@ -84,7 +87,14 @@ export function ListaDeLancamentos({ transacoes, comDataNaLinha = false }: Propr
     const ehEntrada = transacao.tipo === 'entrada';
 
     return (
-      <li className="lancamento" key={transacao.id}>
+      <li
+        className={
+          semAcoes
+            ? 'lancamento lancamento-previsto'
+            : 'lancamento'
+        }
+        key={transacao.id}
+      >
         <span
           className="lancamento-selo"
           style={comVariaveis({
@@ -105,6 +115,9 @@ export function ListaDeLancamentos({ transacoes, comDataNaLinha = false }: Propr
             <span>{transacao.categoria}</span>
             {comDataNaLinha ? <span>· {formatarData(transacao.data)}</span> : null}
             {transacao.observacao ? <span>· {transacao.observacao}</span> : null}
+            {semAcoes ? (
+              <span className="selo-situacao selo-sem-limite">a vencer</span>
+            ) : null}
           </div>
         </div>
 
@@ -115,26 +128,28 @@ export function ListaDeLancamentos({ transacoes, comDataNaLinha = false }: Propr
           className="lancamento-valor"
         />
 
-        <div className="lancamento-acoes">
-          <button
-            type="button"
-            className="acao-miuda"
-            onClick={() => abrirEdicao(transacao)}
-            aria-label={`Editar ${transacao.descricao}`}
-            title="Editar"
-          >
-            ✎
-          </button>
-          <button
-            type="button"
-            className="acao-miuda acao-miuda-perigo"
-            onClick={() => definirParaExcluir(transacao)}
-            aria-label={`Excluir ${transacao.descricao}`}
-            title="Excluir"
-          >
-            🗑
-          </button>
-        </div>
+        {semAcoes ? null : (
+          <div className="lancamento-acoes">
+            <button
+              type="button"
+              className="acao-miuda"
+              onClick={() => abrirEdicao(transacao)}
+              aria-label={`Editar ${transacao.descricao}`}
+              title="Editar"
+            >
+              ✎
+            </button>
+            <button
+              type="button"
+              className="acao-miuda acao-miuda-perigo"
+              onClick={() => definirParaExcluir(transacao)}
+              aria-label={`Excluir ${transacao.descricao}`}
+              title="Excluir"
+            >
+              🗑
+            </button>
+          </div>
+        )}
       </li>
     );
   }
