@@ -1690,6 +1690,106 @@ button {
 }
 
 /* --------------------------------------------------------------------------
+   Barra inferior mobile — só aparece em telas estreitas
+   -------------------------------------------------------------------------- */
+
+.barra-inferior-mobile {
+  display: none;
+}
+
+.item-nav-mobile {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 6px 8px;
+  border-radius: 8px;
+  text-decoration: none;
+  color: #b4bfd2;
+  font-size: 0.58rem;
+  min-width: 50px;
+  background: none;
+  border: none;
+  cursor: pointer;
+}
+
+.item-nav-mobile:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: #fff;
+}
+
+.item-nav-mobile.ativo {
+  background: rgba(255, 255, 255, 0.14);
+  color: #fff;
+}
+
+.item-nav-mobile-icone {
+  font-size: 1.15rem;
+}
+
+.item-nav-mobile-rotulo {
+  white-space: nowrap;
+}
+
+.botao-mais.tem-ativo {
+  color: var(--destaque);
+}
+
+.item-nav-mais {
+  position: relative;
+}
+
+.fundo-popover {
+  position: fixed;
+  inset: 0;
+  z-index: 55;
+}
+
+.popover-mais {
+  position: absolute;
+  bottom: calc(100% + 8px);
+  right: 0;
+  z-index: 60;
+  background: var(--tinta);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 12px;
+  padding: 6px;
+  min-width: 180px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.35);
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.popover-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  text-decoration: none;
+  color: #cdd5e4;
+  font-size: 0.85rem;
+  font-weight: 500;
+}
+
+.popover-item:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
+}
+
+.popover-item.ativo {
+  background: rgba(255, 255, 255, 0.14);
+  color: #fff;
+}
+
+.popover-item-icone {
+  width: 22px;
+  text-align: center;
+  font-size: 1rem;
+}
+
+/* --------------------------------------------------------------------------
    Responsivo: a barra lateral vira barra inferior
    -------------------------------------------------------------------------- */
 
@@ -1699,66 +1799,7 @@ button {
   }
 
   .barra-lateral {
-    position: fixed;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    top: auto;
-    z-index: 40;
-    height: auto;
-    flex-direction: row;
-    align-items: center;
-    gap: 8px;
-    padding: 6px 8px;
-    padding-bottom: max(6px, env(safe-area-inset-bottom));
-    border-top: 1px solid rgba(255, 255, 255, 0.12);
-  }
-
-  .marca,
-  .rodape-barra {
     display: none;
-  }
-
-  .navegacao {
-    flex-direction: row;
-    justify-content: space-around;
-    width: 100%;
-    gap: 0;
-    overflow-x: auto;
-    scrollbar-width: none;
-    -ms-overflow-style: none;
-  }
-
-  .navegacao::-webkit-scrollbar {
-    display: none;
-  }
-
-  .navegacao a {
-    flex-direction: column;
-    gap: 2px;
-    flex: 0 0 auto;
-    min-width: 56px;
-    padding: 6px 4px;
-    font-size: 0.58rem;
-    text-align: center;
-    border-radius: 8px;
-  }
-
-  .navegacao-icone {
-    font-size: 1.1rem;
-    width: auto;
-  }
-
-  .navegacao-rotulo {
-    display: none;
-  }
-
-  .navegacao-rotulo-curto {
-    display: block;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    max-width: 56px;
   }
 
   .tira-conta {
@@ -1860,18 +1901,19 @@ button {
     height: 40px;
   }
 
-  .navegacao a {
-    min-width: 48px;
-    padding: 5px 2px;
-    font-size: 0.54rem;
+  .item-nav-mobile {
+    min-width: 46px;
+    padding: 5px 4px;
+    font-size: 0.52rem;
   }
 
-  .navegacao-icone {
-    font-size: 1rem;
+  .item-nav-mobile-icone {
+    font-size: 1.05rem;
   }
 
-  .navegacao-rotulo-curto {
-    max-width: 48px;
+  .popover-mais {
+    right: -8px;
+    min-width: 170px;
   }
 
   .cabecalho-acoes .botao {
