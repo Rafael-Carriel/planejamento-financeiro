@@ -55,6 +55,7 @@ export function Modal({
   return (
     <div
       className="fundo-modal"
+      data-modal-animacao="escala"
       onMouseDown={(evento) => {
         // Só fecha se o clique começou no fundo. Sem esta checagem, arrastar a
         // seleção de um texto de dentro para fora fecharia o modal.
@@ -62,31 +63,44 @@ export function Modal({
       }}
     >
       <div
-        className={largo ? 'modal modal-largo' : 'modal'}
+        className={`modal${largo ? ' modal-largo' : ''}`}
         role="dialog"
         aria-modal="true"
-        aria-label={titulo}
+        aria-labelledby="modal-titulo"
+        aria-describedby={descricao ? 'modal-descricao' : undefined}
         ref={caixa}
       >
-        <div className="modal-cabeca">
-          <div>
-            <h2>{titulo}</h2>
-            {descricao ? <p className="texto-miudo">{descricao}</p> : null}
+        {/* Cabeçalho */}
+        <header className="modal-cabeca">
+          <div className="modal-cabeca-textos">
+            <h2 id="modal-titulo" className="modal-titulo">
+              {titulo}
+            </h2>
+            {descricao ? (
+              <p id="modal-descricao" className="modal-descricao texto-miudo">
+                {descricao}
+              </p>
+            ) : null}
           </div>
+
           <button
             type="button"
-            className="botao-icone"
+            className="botao-icone modal-fechar"
             onClick={aoFechar}
             aria-label="Fechar"
             data-fechar="sim"
           >
             ✕
           </button>
-        </div>
+        </header>
 
+        {/* Corpo */}
         <div className="modal-corpo">{children}</div>
 
-        {rodape ? <div className="modal-rodape">{rodape}</div> : null}
+        {/* Rodapé */}
+        {rodape ? (
+          <footer className="modal-rodape">{rodape}</footer>
+        ) : null}
       </div>
     </div>
   );
