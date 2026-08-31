@@ -33,8 +33,19 @@
 
   --raio: 14px;
   --raio-pequeno: 9px;
-  --sombra-cartao: 0 1px 2px rgba(14, 22, 38, 0.05), 0 10px 28px -18px rgba(14, 22, 38, 0.28);
-  --sombra-flutuante: 0 24px 60px -20px rgba(14, 22, 38, 0.4);
+  --sombra-cartao:
+    0 1px 2px rgba(14, 22, 38, 0.04),
+    0 4px 8px -2px rgba(14, 22, 38, 0.06),
+    0 12px 32px -10px rgba(14, 22, 38, 0.15);
+  --sombra-flutuante:
+    0 2px 4px rgba(14, 22, 38, 0.06),
+    0 12px 28px -8px rgba(14, 22, 38, 0.12),
+    0 32px 64px -16px rgba(14, 22, 38, 0.32);
+  --sombra-hover:
+    0 1px 2px rgba(14, 22, 38, 0.04),
+    0 6px 12px -3px rgba(14, 22, 38, 0.08),
+    0 18px 44px -14px rgba(14, 22, 38, 0.22);
+  --sombra-foco: 0 0 0 3px rgba(31, 73, 224, 0.18);
 
   --fonte-titulo: 'Archivo', system-ui, -apple-system, sans-serif;
   --fonte-texto: 'Inter', system-ui, -apple-system, sans-serif;
@@ -60,8 +71,9 @@ body {
   color: var(--tinta);
   font-family: var(--fonte-texto);
   font-size: 15px;
-  line-height: 1.5;
+  line-height: 1.6;
   -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
   text-rendering: optimizeLegibility;
 }
 
@@ -71,13 +83,14 @@ h3,
 h4 {
   font-family: var(--fonte-titulo);
   margin: 0;
-  letter-spacing: -0.02em;
-  line-height: 1.15;
+  letter-spacing: -0.025em;
+  line-height: 1.2;
 }
 
 h1 {
   font-size: 1.55rem;
   font-weight: 700;
+  letter-spacing: -0.03em;
 }
 
 h2 {
@@ -88,6 +101,7 @@ h2 {
 h3 {
   font-size: 0.95rem;
   font-weight: 600;
+  letter-spacing: -0.015em;
 }
 
 p {
@@ -102,6 +116,7 @@ a {
   outline: 2px solid var(--destaque);
   outline-offset: 2px;
   border-radius: 4px;
+  transition: outline-offset 0.12s ease;
 }
 
 /* --------------------------------------------------------------------------
@@ -170,7 +185,7 @@ button {
   font-family: var(--fonte-texto);
   background: var(--cartao);
   color: var(--tinta);
-  transition: background-color 0.15s ease, border-color 0.15s ease, transform 0.1s ease;
+  transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease, box-shadow 0.15s ease, transform 0.1s ease;
 }
 
 .botao:active {
@@ -190,6 +205,7 @@ button {
 
 .botao-principal:hover:not(:disabled) {
   background: #1a3ec4;
+  box-shadow: 0 2px 8px -2px rgba(31, 73, 224, 0.35);
 }
 
 .botao-contorno {
@@ -201,6 +217,7 @@ button {
 .botao-contorno:hover:not(:disabled) {
   background: #fff;
   border-color: var(--tinta-fraca);
+  box-shadow: 0 1px 4px rgba(14, 22, 38, 0.08);
 }
 
 .botao-suave {
@@ -210,6 +227,7 @@ button {
 
 .botao-suave:hover:not(:disabled) {
   background: #dfe6ff;
+  box-shadow: 0 1px 4px rgba(31, 73, 224, 0.12);
 }
 
 .botao-perigo {
@@ -219,6 +237,7 @@ button {
 
 .botao-perigo:hover:not(:disabled) {
   background: #f7dbe3;
+  box-shadow: 0 1px 4px rgba(158, 42, 79, 0.12);
 }
 
 .botao-texto {
@@ -229,6 +248,7 @@ button {
   font-size: 0.82rem;
   font-weight: 600;
   border-radius: 6px;
+  transition: background-color 0.15s ease, color 0.15s ease;
 }
 
 .botao-texto:hover {
@@ -248,11 +268,13 @@ button {
   color: var(--tinta-media);
   font-size: 1rem;
   line-height: 1;
+  transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease, box-shadow 0.15s ease;
 }
 
 .botao-icone:hover {
   border-color: var(--borda-forte);
   color: var(--tinta);
+  box-shadow: 0 1px 4px rgba(14, 22, 38, 0.08);
 }
 
 .campo {
@@ -277,6 +299,7 @@ button {
   border-radius: var(--raio-pequeno);
   background: var(--cartao);
   color: var(--tinta);
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
 }
 
 .campo input:focus,
@@ -343,6 +366,7 @@ button {
   font-size: 0.875rem;
   font-weight: 600;
   color: var(--tinta-media);
+  transition: background-color 0.15s ease, color 0.15s ease, box-shadow 0.15s ease;
 }
 
 .alternador button[aria-pressed='true'] {
@@ -448,6 +472,7 @@ button {
   text-decoration: none;
   font-size: 0.9rem;
   font-weight: 500;
+  transition: background-color 0.15s ease, color 0.15s ease;
 }
 
 .navegacao a:hover {
@@ -540,6 +565,7 @@ button {
   font-size: 0.82rem;
   font-weight: 600;
   text-align: left;
+  transition: background-color 0.15s ease, color 0.15s ease;
 }
 
 .botao-sair:hover {
@@ -562,6 +588,7 @@ button {
   max-width: 100%;
   min-width: 0;
   overflow: hidden;
+  transition: background-color 0.15s ease;
 }
 
 .botao-identificacao:hover {
@@ -578,6 +605,7 @@ button {
   padding: 10px 16px;
   background: var(--tinta);
   color: #fff;
+  transition: background-color 0.15s ease;
 }
 
 .tira-conta .marca-nome {
@@ -650,6 +678,7 @@ button {
   color: var(--tinta-media);
   font-size: 1rem;
   line-height: 1;
+  transition: background-color 0.15s ease, color 0.15s ease;
 }
 
 .seletor-mes button:hover {
@@ -673,6 +702,7 @@ button {
   padding: 6px 10px;
   font-size: 0.78rem;
   font-weight: 600;
+  transition: background-color 0.15s ease, color 0.15s ease;
 }
 
 /* --------------------------------------------------------------------------
@@ -684,6 +714,12 @@ button {
   border: 1px solid var(--borda);
   border-radius: var(--raio);
   box-shadow: var(--sombra-cartao);
+  transition: box-shadow 0.2s ease, border-color 0.2s ease, transform 0.2s ease;
+}
+
+.cartao:hover {
+  box-shadow: var(--sombra-hover);
+  border-color: var(--borda-forte);
 }
 
 .cartao-cabeca {
@@ -775,6 +811,7 @@ button {
   background: none;
   padding: 0;
   border-radius: 3px;
+  transition: background-color 0.12s ease;
 }
 
 .regua-dia:hover {
@@ -901,6 +938,7 @@ button {
   gap: 12px;
   padding: 11px 18px;
   border-bottom: 1px solid var(--borda);
+  transition: background-color 0.12s ease;
 }
 
 .lancamento:last-child {
@@ -979,6 +1017,7 @@ button {
   border-left: 2px dashed var(--borda-forte);
   padding-left: 16px;
   background: #fcfdff;
+  transition: background-color 0.12s ease;
 }
 
 /* Recorrência pausada ou série já encerrada: continua legível, mas sai do
@@ -1006,6 +1045,7 @@ button {
   color: var(--tinta-fraca);
   font-size: 0.9rem;
   line-height: 1;
+  transition: background-color 0.15s ease, color 0.15s ease;
 }
 
 .acao-miuda:hover {
@@ -1102,6 +1142,7 @@ button {
   font-size: 0.7rem;
   font-weight: 600;
   letter-spacing: 0.01em;
+  transition: background-color 0.15s ease, color 0.15s ease;
 }
 
 .selo-tranquilo {
@@ -1149,6 +1190,7 @@ button {
   font-size: 0.9rem;
   background: var(--cartao);
   color: var(--tinta);
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
 }
 
 .campo-limite input:focus {
@@ -1251,6 +1293,10 @@ button {
   border-bottom: none;
 }
 
+.tabela tbody tr {
+  transition: background-color 0.12s ease;
+}
+
 .tabela tbody tr:hover {
   background: #fafbfe;
 }
@@ -1301,6 +1347,7 @@ button {
   border-radius: var(--raio-pequeno);
   background: var(--cartao);
   color: var(--tinta);
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
 }
 
 .busca input:focus {
@@ -1326,6 +1373,7 @@ button {
   border-radius: var(--raio-pequeno);
   background: var(--cartao);
   color: var(--tinta);
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
 }
 
 .selecao:focus {
@@ -1346,8 +1394,8 @@ button {
   align-items: center;
   justify-content: center;
   padding: 18px;
-  background: rgba(14, 22, 38, 0.42);
-  backdrop-filter: blur(3px);
+  background: rgba(14, 22, 38, 0.45);
+  backdrop-filter: blur(4px);
   animation: aparecer 0.14s ease;
 }
 
@@ -1360,7 +1408,7 @@ button {
   background: var(--cartao);
   border-radius: 16px;
   box-shadow: var(--sombra-flutuante);
-  animation: subir 0.18s ease;
+  animation: subir 0.2s ease;
 }
 
 .modal-largo {
@@ -1414,6 +1462,15 @@ button {
   padding: 6px;
   font-size: 1.05rem;
   line-height: 1.2;
+  transition: border-color 0.15s ease, background-color 0.15s ease, transform 0.1s ease;
+}
+
+.grade-emojis button:hover {
+  border-color: var(--borda-forte);
+}
+
+.grade-emojis button:active {
+  transform: scale(0.95);
 }
 
 .grade-emojis button[aria-pressed='true'] {
@@ -1434,6 +1491,11 @@ button {
   border: 2px solid transparent;
   background: var(--cor-amostra);
   box-shadow: inset 0 0 0 1px rgba(14, 22, 38, 0.12);
+  transition: border-color 0.15s ease, transform 0.1s ease;
+}
+
+.amostra-cor:hover {
+  transform: scale(1.1);
 }
 
 .amostra-cor[aria-pressed='true'] {
@@ -1576,6 +1638,7 @@ button {
   font-size: 0.875rem;
   font-weight: 600;
   color: var(--tinta-media);
+  transition: background-color 0.15s ease, color 0.15s ease, box-shadow 0.15s ease;
 }
 
 .entrada-abas button[aria-pressed='true'] {
@@ -1721,6 +1784,7 @@ button {
   background: none;
   border: none;
   cursor: pointer;
+  transition: background-color 0.15s ease, color 0.15s ease;
 }
 
 .item-nav-mobile:hover {
@@ -1781,6 +1845,7 @@ button {
   color: #cdd5e4;
   font-size: 0.85rem;
   font-weight: 500;
+  transition: background-color 0.15s ease, color 0.15s ease;
 }
 
 .popover-item:hover {
