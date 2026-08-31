@@ -23,13 +23,14 @@ const ITENS: ItemDeNavegacao[] = [
   { para: '/recorrencias', rotulo: 'Recorrências', rotuloCurto: 'Fixas', icone: '⟳' },
   { para: '/previsao', rotulo: 'Previsão', rotuloCurto: 'Previsão', icone: '◔' },
   { para: '/categorias', rotulo: 'Categorias', rotuloCurto: 'Categorias', icone: '⬢' },
+  { para: '/dividas', rotulo: 'Dívidas', rotuloCurto: 'Dívidas', icone: '💸' },
   { para: '/planejamento', rotulo: 'Planejamento', rotuloCurto: 'Plano', icone: '◎' },
   { para: '/historico', rotulo: 'Histórico', rotuloCurto: 'Histórico', icone: '≡' },
   { para: '/relatorios', rotulo: 'Relatórios', rotuloCurto: 'Relatórios', icone: '📊' },
   { para: '/reserva-emergencia', rotulo: 'Reserva', rotuloCurto: 'Reserva', icone: '🛡' },
 ];
 
-const ITENS_PRINCIPAIS = ['/', '/receitas', '/despesas', '/recorrencias', '/previsao'];
+const ITENS_PRINCIPAIS = ['/', '/receitas', '/despesas', '/recorrencias', '/dividas'];
 
 export function Layout() {
   const { nomeParaExibir, usuario, sair } = useAutenticacao();

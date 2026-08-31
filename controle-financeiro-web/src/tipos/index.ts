@@ -195,3 +195,28 @@ export interface MesPrevisto {
   acumulado: number;
   ocorrencias: OcorrenciaPrevista[];
 }
+
+/// Dívida que o usuário tem mas não está pagando regularmente.
+///
+/// Diferente de despesa recorrente: não gera lançamento mensal nem entra no
+/// planejamento. É apenas um registro de quanto se deve e quanto já se pagou.
+export interface Divida {
+  id: string;
+  descricao: string;
+  valor: number;
+  valorPago: number;
+  credor: string;
+  dataVencimento: Date | null;
+  observacao: string | null;
+  criadoEm: Date | null;
+}
+
+/// O que o formulário de dívida entrega para gravar.
+export interface DadosDeDivida {
+  descricao: string;
+  valor: number;
+  valorPago: number;
+  credor: string;
+  dataVencimento: Date | null;
+  observacao: string | null;
+}

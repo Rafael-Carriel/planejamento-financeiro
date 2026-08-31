@@ -8,6 +8,7 @@ import { ProvedorDeLancamento } from './contextos/ContextoLancamento';
 import { ProvedorDeMes } from './contextos/ContextoMes';
 import { Categorias } from './paginas/Categorias';
 import { Despesas } from './paginas/Despesas';
+import { Dividas } from './paginas/Dividas';
 import { Entrada } from './paginas/Entrada';
 import { Historico } from './paginas/Historico';
 import { Painel } from './paginas/Painel';
@@ -15,6 +16,8 @@ import { Planejamento } from './paginas/Planejamento';
 import { Previsao } from './paginas/Previsao';
 import { Receitas } from './paginas/Receitas';
 import { Recorrencias } from './paginas/Recorrencias';
+import { Relatorios } from './paginas/Relatorios';
+import { ReservaEmergencia } from './paginas/ReservaEmergencia';
 
 /// Montagem do app.
 ///
@@ -41,8 +44,11 @@ function Portao() {
             <Route path="recorrencias" element={<Recorrencias />} />
             <Route path="previsao" element={<Previsao />} />
             <Route path="categorias" element={<Categorias />} />
+            <Route path="dividas" element={<Dividas />} />
             <Route path="planejamento" element={<Planejamento />} />
             <Route path="historico" element={<Historico />} />
+            <Route path="relatorios" element={<Relatorios />} />
+            <Route path="reserva-emergencia" element={<ReservaEmergencia />} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Route>
         </Routes>

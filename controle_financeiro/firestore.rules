@@ -40,6 +40,22 @@ service cloud.firestore {
         allow read, delete: if ehDono(uid);
         allow create, update: if ehDono(uid) && recorrenciaValida();
       }
+
+      match /dividas/{dividaId} {
+        allow read, delete: if ehDono(uid);
+        allow create, update: if ehDono(uid) && dividaValida();
+      }
+
+      match /reservaEmergencia/{docId} {
+        allow read, delete: if ehDono(uid);
+        allow create, update: if ehDono(uid) && reservaValida();
+      }
+
+      // Movimentações da reserva de emergência: histórico de entradas e saídas.
+      match /movimentacoesReserva/{movimentacaoId} {
+        allow read, delete: if ehDono(uid);
+        allow create, update: if ehDono(uid) && movimentacaoReservaValida();
+      }
     }
 
     // Explícito por clareza: o padrão do Firestore já é negar tudo que não
@@ -157,6 +173,61 @@ service cloud.firestore {
           dados.observacao == null
           || (dados.observacao is string && dados.observacao.size() <= 500)
         );
+    }
+
+    function dividaValida() {
+      let dados = request.resource.data;
+      return dados.keys().hasOnly([
+            'descricao', 'valor', 'valorPago', 'credor',
+            'dataVencimento', 'observacao', 'criadoEm', 'atualizadoEm',
+          ])
+        && dados.descricao is string
+        && dados.descricao.size() > 0
+        && dados.descricao.size() <= 120
+        && dados.valor is number
+        && dados.valor > 0
+        && dados.valor <= 100000000
+        && dados.valorPago is number
+        && dados.valorPago >= 0
+        && dados.valorPago <= 100000000
+        && dados.credor is string
+        && dados.credor.size() > 0
+        && dados.credor.size() <= 100
+        && (
+          dados.dataVencimento == null
+          || dados.dataVencimento is timestamp
+        )
+        && (
+          dados.observacao == null
+          || (dados.observacao is string && dados.observacao.size() <= 500)
+        );
+    }
+
+    // Reserva de emergência: documento único com meta e valor atual.
+    function reservaValida() {
+      let dados = request.resource.data;
+      return dados.keys().hasOnly(['meta', 'valorAtual', 'atualizadoEm'])
+        && dados.meta is number
+        && dados.meta >= 0
+        && dados.meta <= 100000000
+        && dados.valorAtual is number
+        && dados.valorAtual >= 0
+        && dados.valorAtual <= 100000000;
+    }
+
+    // Movimentação da reserva: entrada ou saída com descrição.
+    function movimentacaoReservaValida() {
+      let dados = request.resource.data;
+      return dados.keys().hasOnly(['tipo', 'valor', 'descricao', 'data', 'criadoEm'])
+        && dados.tipo in ['entrada', 'saida']
+        && dados.valor is number
+        && dados.valor > 0
+        && dados.valor <= 100000000
+        && dados.descricao is string
+        && dados.descricao.size() > 0
+        && dados.descricao.size() <= 100
+        && dados.data is timestamp
+        && dados.criadoEm is timestamp;
     }
   }
 }
