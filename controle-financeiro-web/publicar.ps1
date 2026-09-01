@@ -32,16 +32,16 @@ Falta o .env.local. Rode primeiro:
 
 if (-not (Test-Path (Join-Path $pasta 'node_modules'))) {
     Escrever-Passo 'Instalando as dependências'
-    & npm install
+    & npm.cmd install
     if ($LASTEXITCODE -ne 0) { throw 'npm install falhou.' }
 }
 
 Escrever-Passo 'Compilando (checagem de tipos + build)'
-& npm run build
+& npm.cmd run build
 if ($LASTEXITCODE -ne 0) { throw 'O build falhou. Nada foi publicado.' }
 
 Escrever-Passo 'Publicando no Firebase Hosting'
-& firebase deploy --only hosting --project $projeto
+& firebase.cmd deploy --only hosting --project $projeto
 if ($LASTEXITCODE -ne 0) { throw 'O deploy falhou.' }
 
 Write-Host "`nPublicado: https://$projeto.web.app`n" -ForegroundColor Green
