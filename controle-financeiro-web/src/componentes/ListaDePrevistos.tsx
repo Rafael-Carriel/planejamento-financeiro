@@ -8,11 +8,33 @@ import { formatarData, formatarMoeda } from '../utilitarios/formatadores';
 import { comVariaveis } from '../utilitarios/estilo';
 import { Dinheiro } from './Dinheiro';
 
-let _scrollAntesDeLancar: number | null = null;
-export function consumirScroll(): number | null {
-  const y = _scrollAntesDeLancar;
-  _scrollAntesDeLancar = null;
-  return y;
+let _scrollGuardId: number | null = null;
+
+function iniciarGuardaDeScroll(y: number) {
+  pararGuardaDeScroll();
+  let frames = 0;
+  const MAX_FRAMES = 30; // ~500ms a 60fps
+
+  function loop() {
+    frames++;
+    if (frames < MAX_FRAMES) {
+      if (Math.abs(window.scrollY - y) > 1) {
+        window.scrollTo(0, y);
+      }
+      _scrollGuardId = requestAnimationFrame(loop);
+    } else {
+      _scrollGuardId = null;
+    }
+  }
+
+  _scrollGuardId = requestAnimationFrame(loop);
+}
+
+function pararGuardaDeScroll() {
+  if (_scrollGuardId !== null) {
+    cancelAnimationFrame(_scrollGuardId);
+    _scrollGuardId = null;
+  }
 }
 
 interface Propriedades {
@@ -67,10 +89,11 @@ export function ListaDePrevistos({
     pendentes.length > 0 && selecionadas.size === pendentes.length;
 
   async function lancarUma(ocorrencia: OcorrenciaPrevista) {
-    _scrollAntesDeLancar = window.scrollY;
+    const y = window.scrollY;
     (document.activeElement as HTMLElement)?.blur?.();
     definirLancando(ocorrencia.chave);
     definirErro(null);
+    iniciarGuardaDeScroll(y);
     try {
       await lancarPrevisto(ocorrencia);
       aoLancar?.();
@@ -89,10 +112,11 @@ export function ListaDePrevistos({
         ? pendentes.filter((o) => selecionadas.has(o.chave))
         : pendentes;
     if (alvo.length === 0) return;
-    _scrollAntesDeLancar = window.scrollY;
+    const y = window.scrollY;
     (document.activeElement as HTMLElement)?.blur?.();
     definirLancando('batch');
     definirErro(null);
+    iniciarGuardaDeScroll(y);
     try {
       await lancarPrevistos(alvo);
       definirSelecionadas(new Set());
