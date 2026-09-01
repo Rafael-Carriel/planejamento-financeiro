@@ -872,6 +872,65 @@ button {
 }
 
 /* --------------------------------------------------------------------------
+   Painel Hero — Saldo + Projetado
+   -------------------------------------------------------------------------- */
+
+.painel-hero {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  margin-bottom: 8px;
+}
+
+.painel-saldo-card {
+  position: relative;
+  overflow: hidden;
+  padding: 24px 24px 20px;
+  border-radius: var(--raio);
+  background: var(--cartao-fundo);
+  border: 1px solid var(--borda);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.06);
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.painel-saldo-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+}
+
+.painel-saldo-card.positivo {
+  border-left: 4px solid var(--entrada);
+}
+
+.painel-saldo-card.negativo {
+  border-left: 4px solid var(--saida);
+}
+
+.painel-saldo-rotulo {
+  display: block;
+  font-size: 0.78rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--tinta-fraca);
+  margin-bottom: 4px;
+}
+
+.painel-saldo-valor {
+  display: block;
+  font-size: 2.25rem;
+  line-height: 1.1;
+  letter-spacing: -0.03em;
+}
+
+.painel-saldo-nota {
+  display: block;
+  margin-top: 10px;
+  font-size: 0.78rem;
+  color: var(--tinta-fraca);
+}
+
+/* --------------------------------------------------------------------------
    Régua do Mês
    -------------------------------------------------------------------------- */
 

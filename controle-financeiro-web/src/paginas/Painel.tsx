@@ -18,12 +18,8 @@ import { linhasEmAtencao, situacaoDoLimite } from '../dominio/situacao';
 import { formatarMoeda, formatarPorcentagem } from '../utilitarios/formatadores';
 import { comVariaveis } from '../utilitarios/estilo';
 
-/// O painel: o mês inteiro numa página.
-///
-/// A ordem das seções é a ordem das perguntas que se faz ao abrir o app: quanto
-/// sobrou, quando o dinheiro se mexeu, para onde foi, e o que está estourando.
-
-const QUANTOS_LANCAMENTOS_RECENTES = 8;
+const QUANTOS_LANCAMENTOS_RECENTES = 5;
+const QUANTOS_PREVISTOS_NO_PAINEL = 5;
 
 export function Painel() {
   const { mes, rotulo, ehMesAtual } = useMes();
@@ -46,14 +42,9 @@ export function Painel() {
     [transacoes],
   );
 
-  // Quanto das entradas sobrou. Sem entradas no mês a conta não tem sentido, e
-  // mostrar "0%" aí só confundiria.
   const fatiaGuardada =
     resumo.entradas > 0 ? Math.max(0, resumo.saldo) / resumo.entradas : null;
 
-  // O que as recorrências ainda prometem para este mês. O saldo projetado é a
-  // pergunta que o saldo do mês não responde: "se tudo o que está combinado
-  // acontecer, eu fecho o mês no positivo?".
   const aReceber = useMemo(
     () => somarOcorrencias(doTipo(previstosDoMes, 'entrada')),
     [previstosDoMes],
@@ -68,8 +59,15 @@ export function Painel() {
     [previstosDoMes],
   );
 
+  const previstosVisiveis = previstosDoMes.slice(0, QUANTOS_PREVISTOS_NO_PAINEL);
+  const temMaisPrevistos = previstosDoMes.length > QUANTOS_PREVISTOS_NO_PAINEL;
+
+  const entradasTotais = resumo.entradas + aReceber;
+  const saidasTotais = resumo.saidas + aPagar;
+
   const notaDoSaldo = (() => {
-    if (resumo.quantidade === 0) return 'Nenhum lançamento neste mês.';
+    if (resumo.quantidade === 0 && previstosDoMes.length === 0) return 'Nenhum lançamento neste mês.';
+    if (resumo.quantidade === 0) return 'Lançamentos ainda não confirmados este mês.';
     if (resumo.saldo < 0) return `Você gastou ${formatarMoeda(-resumo.saldo)} além do que entrou.`;
     if (fatiaGuardada !== null) {
       return `Sobrou ${formatarPorcentagem(fatiaGuardada)} do que entrou.`;
@@ -111,8 +109,7 @@ export function Painel() {
           <Carregando mensagem="Buscando os lançamentos do mês…" />
         ) : (
           <>
-            {/* Tutorial do Painel */}
-            {resumo.quantidade === 0 && (
+            {resumo.quantidade === 0 && previstosDoMes.length === 0 && (
               <section className="cartao">
                 <div className="cartao-corpo">
                   <p className="texto-apoio" style={{ margin: 0 }}>
@@ -124,65 +121,67 @@ export function Painel() {
               </section>
             )}
 
+            {/* HERO: Saldo + Projetado — o mais importante */}
+            <div className="painel-hero">
+              <div className={`painel-saldo-card ${resumo.saldo >= 0 ? 'positivo' : 'negativo'}`}>
+                <span className="painel-saldo-rotulo">Saldo do mês</span>
+                <Dinheiro valor={resumo.saldo} cor="saldo" className="painel-saldo-valor" />
+                <span className="painel-saldo-nota">{notaDoSaldo}</span>
+              </div>
+
+              {previstosDoMes.length > 0 ? (
+                <div className={`painel-saldo-card ${saldoProjetado >= 0 ? 'positivo' : 'negativo'}`}>
+                  <span className="painel-saldo-rotulo">Saldo projetado</span>
+                  <Dinheiro valor={saldoProjetado} cor="saldo" className="painel-saldo-valor" />
+                  <span className="painel-saldo-nota">
+                    {formatarMoeda(aReceber)} a receber · {formatarMoeda(aPagar)} a pagar
+                  </span>
+                </div>
+              ) : null}
+            </div>
+
+            {/* ENTRADAS / SAÍDAS */}
             <div className="grade-resumo">
               <CartaoResumo
                 rotulo="Entradas"
-                valor={resumo.entradas}
+                valor={entradasTotais}
                 cor="entrada"
                 corDaFaixa="var(--entrada)"
+                icone="↑"
                 nota={
                   entradasPorCategoria.length > 0
-                    ? `Maior fonte: ${entradasPorCategoria[0].categoria}`
+                    ? entradasPorCategoria[0].categoria
                     : 'Nada entrou ainda.'
                 }
               />
               <CartaoResumo
                 rotulo="Saídas"
-                valor={resumo.saidas}
+                valor={saidasTotais}
                 cor="saida"
                 corDaFaixa="var(--saida)"
+                icone="↓"
                 nota={
                   saidasPorCategoria.length > 0
-                    ? `Maior gasto: ${saidasPorCategoria[0].categoria}`
+                    ? saidasPorCategoria[0].categoria
                     : 'Nada saiu ainda.'
                 }
               />
               <CartaoResumo
-                rotulo="Saldo do mês"
-                valor={resumo.saldo}
+                rotulo="Lançamentos"
+                valor={resumo.quantidade}
                 cor="saldo"
-                corDaFaixa={resumo.saldo < 0 ? 'var(--saida)' : 'var(--destaque)'}
-                nota={notaDoSaldo}
+                corDaFaixa="var(--borda-forte)"
+                icone="≡"
+                nota={
+                  resumo.quantidade > 0
+                    ? `Média de ${formatarMoeda((resumo.entradas + resumo.saidas) / resumo.quantidade)}`
+                    : 'Nenhum ainda.'
+                }
               />
-              {previstosDoMes.length > 0 ? (
-                <CartaoResumo
-                  rotulo="Saldo projetado"
-                  valor={saldoProjetado}
-                  cor="saldo"
-                  corDaFaixa={saldoProjetado < 0 ? 'var(--saida)' : 'var(--destaque)'}
-                  nota={`Contando ${formatarMoeda(aReceber)} a receber e ${formatarMoeda(aPagar)} a pagar.`}
-                />
-              ) : null}
-
-              {/* Este cartão conta lançamentos, não reais — por isso não usa
-                  CartaoResumo, que formata tudo como moeda. */}
-              <div
-                className="cartao cartao-resumo"
-                style={comVariaveis({ '--cor-faixa': 'var(--borda-forte)' })}
-              >
-                <span className="etiqueta">Lançamentos</span>
-                <span className="dinheiro dinheiro-neutro cartao-resumo-valor">
-                  {resumo.quantidade}
-                </span>
-                <p className="cartao-resumo-nota">
-                  {resumo.quantidade > 0
-                    ? `Média de ${formatarMoeda((resumo.entradas + resumo.saidas) / resumo.quantidade)} por lançamento.`
-                    : 'Comece lançando o que entrou e o que saiu.'}
-                </p>
-              </div>
             </div>
 
-            {previstosDoMes.length > 0 ? (
+            {/* FALTA CONFIRMAR — máx 5 itens */}
+            {previstosVisiveis.length > 0 ? (
               <section className="cartao">
                 <div className="cartao-cabeca">
                   <h2>
@@ -195,23 +194,29 @@ export function Painel() {
                       </span>
                     ) : null}
                   </h2>
-                  <Link className="botao-texto" to="/previsao">
-                    Ver os próximos meses
-                  </Link>
+                  {temMaisPrevistos ? (
+                    <Link className="botao-texto" to="/previsao">
+                      Ver todos ({previstosDoMes.length})
+                    </Link>
+                  ) : (
+                    <Link className="botao-texto" to="/previsao">
+                      Ver previsão
+                    </Link>
+                  )}
                 </div>
                 <div className="cartao-corpo-sem-topo">
-                  <ListaDePrevistos ocorrencias={previstosDoMes} />
+                  <ListaDePrevistos ocorrencias={previstosVisiveis} />
                 </div>
               </section>
             ) : null}
 
-            {resumo.quantidade === 0 ? (
+            {resumo.quantidade === 0 && previstosDoMes.length === 0 ? (
               <div className="cartao">
                 <div className="cartao-corpo">
                   <EstadoVazio
                     selo="📅"
                     titulo={`Nada lançado em ${rotulo.toLowerCase()}`}
-                    descricao="Registre a primeira entrada ou saída do mês e o painel se preenche na hora — a régua, as categorias e o planejamento saem daqui."
+                    descricao="Registre a primeira entrada ou saída do mês e o painel se preenche na hora."
                     acao={
                       <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
                         <button
