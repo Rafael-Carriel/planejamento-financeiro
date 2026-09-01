@@ -97,6 +97,8 @@ interface ValorDosDados {
   removerRecorrencia: (id: string) => Promise<void>;
   /// Transforma uma ocorrência prevista em lançamento de verdade.
   lancarPrevisto: (ocorrencia: OcorrenciaPrevista) => Promise<void>;
+  /// Lança várias ocorrências previstas de uma vez.
+  lancarPrevistos: (ocorrencias: OcorrenciaPrevista[]) => Promise<void>;
 }
 
 const ContextoDados = createContext<ValorDosDados | null>(null);
@@ -327,8 +329,6 @@ export function ProvedorDeDados({ children }: { children: ReactNode }) {
         if (!uid) throw new Error('Entre na conta para lançar.');
         if (ocorrencia.situacao === 'lancada') return;
 
-        // O `recorrenciaId` é o que faz a ocorrência sair da lista de previstos:
-        // é por ele que a projeção reconhece o mês como resolvido.
         await criarTransacao(uid, {
           descricao: descricaoDaOcorrencia(ocorrencia),
           valor: ocorrencia.valor,
@@ -338,6 +338,23 @@ export function ProvedorDeDados({ children }: { children: ReactNode }) {
           observacao: ocorrencia.observacao,
           recorrenciaId: ocorrencia.recorrenciaId,
         });
+      },
+      lancarPrevistos: async (ocorrencias) => {
+        if (!uid) throw new Error('Entre na conta para lançar.');
+        const pendentes = ocorrencias.filter((o) => o.situacao !== 'lancada');
+        await Promise.all(
+          pendentes.map((ocorrencia) =>
+            criarTransacao(uid, {
+              descricao: descricaoDaOcorrencia(ocorrencia),
+              valor: ocorrencia.valor,
+              tipo: ocorrencia.tipo,
+              categoria: ocorrencia.categoria,
+              data: ocorrencia.data,
+              observacao: ocorrencia.observacao,
+              recorrenciaId: ocorrencia.recorrenciaId,
+            }),
+          ),
+        );
       },
     }),
     [

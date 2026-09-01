@@ -205,7 +205,7 @@ export function Painel() {
                   )}
                 </div>
                 <div className="cartao-corpo-sem-topo">
-                  <ListaDePrevistos ocorrencias={previstosVisiveis} />
+                  <ListaDePrevistos ocorrencias={previstosVisiveis} comSelecao />
                 </div>
               </section>
             ) : null}

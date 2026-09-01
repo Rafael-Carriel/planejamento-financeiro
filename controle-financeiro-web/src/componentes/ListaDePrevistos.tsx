@@ -1,29 +1,18 @@
-import { useState } from 'react';
+import { useCallback, useState } from 'react';
 
 import { useDados } from '../contextos/ContextoDados';
 import { descricaoDaOcorrencia } from '../dominio/recorrencias';
 import type { OcorrenciaPrevista } from '../tipos';
 import { rotuloDoMesCurto } from '../utilitarios/datas';
-import { formatarData } from '../utilitarios/formatadores';
+import { formatarData, formatarMoeda } from '../utilitarios/formatadores';
 import { comVariaveis } from '../utilitarios/estilo';
 import { Dinheiro } from './Dinheiro';
 
-/// Lista de ocorrências previstas — o que a recorrência diz que vai acontecer.
-///
-/// Reaproveita a mesma linha do extrato de propósito: previsto e lançado ficam
-/// visualmente irmãos, e a diferença é a borda tracejada mais o selo de
-/// situação. O botão "Lançar" é o que transforma a previsão em dinheiro de
-/// verdade — nada é gravado sem esse clique.
-
 interface Propriedades {
   ocorrencias: OcorrenciaPrevista[];
-  /// Mostra o mês na linha. Ligado na previsão, onde a lista atravessa meses.
   comMes?: boolean;
-  /// Esconde o botão de lançar (útil quando a lista é só informativa).
   semAcoes?: boolean;
-  /// Avisa depois de lançar. A previsão usa para reler o período: o lançamento
-  /// pode cair num mês que não é o assinado ao vivo, e sem isto a linha ficaria
-  /// como "a vencer" mesmo já tendo sido lançada.
+  comSelecao?: boolean;
   aoLancar?: () => void;
 }
 
@@ -40,13 +29,37 @@ export function ListaDePrevistos({
   ocorrencias,
   comMes = false,
   semAcoes = false,
+  comSelecao = false,
   aoLancar,
 }: Propriedades) {
-  const { descreverCategoria, lancarPrevisto } = useDados();
+  const { descreverCategoria, lancarPrevisto, lancarPrevistos } = useDados();
   const [lancando, definirLancando] = useState<string | null>(null);
   const [erro, definirErro] = useState<string | null>(null);
+  const [selecionadas, definirSelecionadas] = useState<Set<string>>(new Set());
 
-  async function lancar(ocorrencia: OcorrenciaPrevista) {
+  const pendentes = ocorrencias.filter((o) => o.situacao !== 'lancada');
+
+  const alternarSelecao = useCallback((chave: string) => {
+    definirSelecionadas((anterior) => {
+      const proximo = new Set(anterior);
+      if (proximo.has(chave)) proximo.delete(chave);
+      else proximo.add(chave);
+      return proximo;
+    });
+  }, []);
+
+  const selecionarTudo = useCallback(() => {
+    definirSelecionadas(new Set(pendentes.map((o) => o.chave)));
+  }, [pendentes]);
+
+  const limparSelecao = useCallback(() => {
+    definirSelecionadas(new Set());
+  }, []);
+
+  const todasSelecionadas =
+    pendentes.length > 0 && selecionadas.size === pendentes.length;
+
+  async function lancarUma(ocorrencia: OcorrenciaPrevista) {
     definirLancando(ocorrencia.chave);
     definirErro(null);
     try {
@@ -61,9 +74,71 @@ export function ListaDePrevistos({
     }
   }
 
+  async function lancarSelecionadas() {
+    const alvo =
+      selecionadas.size > 0
+        ? pendentes.filter((o) => selecionadas.has(o.chave))
+        : pendentes;
+    if (alvo.length === 0) return;
+    definirLancando('batch');
+    definirErro(null);
+    try {
+      await lancarPrevistos(alvo);
+      definirSelecionadas(new Set());
+      aoLancar?.();
+    } catch (falha) {
+      definirErro(
+        falha instanceof Error ? falha.message : 'Não deu para lançar. Tente de novo.',
+      );
+    } finally {
+      definirLancando(null);
+    }
+  }
+
+  const valoresSelecionados = pendentes
+    .filter((o) => selecionadas.has(o.chave))
+    .reduce(
+      (acc, o) => acc + (o.tipo === 'entrada' ? o.valor : -o.valor),
+      0,
+    );
+
   return (
     <>
       {erro ? <div className="aviso aviso-erro">{erro}</div> : null}
+
+      {comSelecao && pendentes.length > 0 && (
+        <div className="previstos-barra-acoes">
+          <div className="previstos-selecao-info">
+            <label className="previstos-checkbox-label">
+              <input
+                type="checkbox"
+                className="previstos-checkbox"
+                checked={todasSelecionadas}
+                onChange={todasSelecionadas ? limparSelecao : selecionarTudo}
+              />
+              {todasSelecionadas ? 'Desmarcar tudo' : 'Selecionar tudo'}
+            </label>
+            {selecionadas.size > 0 && (
+              <span className="previstos-selecao-resumo">
+                {selecionadas.size} selecionado{selecionadas.size > 1 ? 's' : ''}{' '}
+                · {formatarMoeda(Math.abs(valoresSelecionados))}
+              </span>
+            )}
+          </div>
+          <button
+            type="button"
+            className="botao botao-principal"
+            onClick={() => void lancarSelecionadas()}
+            disabled={lancando !== null}
+          >
+            {lancando === 'batch'
+              ? 'Lançando…'
+              : selecionadas.size > 0
+                ? `Lançar ${selecionadas.size} selecionado${selecionadas.size > 1 ? 's' : ''}`
+                : `Lançar tudo (${pendentes.length})`}
+          </button>
+        </div>
+      )}
 
       <ul className="lista-lancamentos">
         {ocorrencias.map((ocorrencia) => {
@@ -71,16 +146,29 @@ export function ListaDePrevistos({
           const ehEntrada = ocorrencia.tipo === 'entrada';
           const selo = SELO_DA_SITUACAO[ocorrencia.situacao];
           const jaLancada = ocorrencia.situacao === 'lancada';
+          const estaSelecionada = selecionadas.has(ocorrencia.chave);
 
           return (
             <li
-              className={
-                jaLancada
-                  ? 'lancamento lancamento-com-acao'
-                  : 'lancamento lancamento-com-acao lancamento-previsto'
-              }
+              className={[
+                'lancamento',
+                'lancamento-com-acao',
+                !jaLancada && 'lancamento-previsto',
+                comSelecao && !jaLancada && estaSelecionada && 'lancamento-selecionado',
+              ]
+                .filter(Boolean)
+                .join(' ')}
               key={ocorrencia.chave}
             >
+              {comSelecao && !jaLancada && (
+                <input
+                  type="checkbox"
+                  className="previstos-checkbox-item"
+                  checked={estaSelecionada}
+                  onChange={() => alternarSelecao(ocorrencia.chave)}
+                />
+              )}
+
               <span
                 className="lancamento-selo"
                 style={comVariaveis({
@@ -114,16 +202,12 @@ export function ListaDePrevistos({
                 className="lancamento-valor"
               />
 
-              {/* Classe própria, não `.lancamento-acoes`: aquela desaparece no
-                  celular (os ícones de editar/excluir cabem no toque longo), e o
-                  "Lançar" é a ação principal desta lista — precisa aparecer em
-                  qualquer tela. */}
               <div className="lancamento-acao">
                 {jaLancada || semAcoes ? null : (
                   <button
                     type="button"
                     className="botao-texto"
-                    onClick={() => void lancar(ocorrencia)}
+                    onClick={() => void lancarUma(ocorrencia)}
                     disabled={lancando !== null}
                     title={
                       ehEntrada
