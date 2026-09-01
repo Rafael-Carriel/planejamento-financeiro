@@ -8,6 +8,14 @@ import { formatarData, formatarMoeda } from '../utilitarios/formatadores';
 import { comVariaveis } from '../utilitarios/estilo';
 import { Dinheiro } from './Dinheiro';
 
+let _scrollAntesDeLancar: number | null = null;
+export function capturarScroll() { _scrollAntesDeLancar = window.scrollY; }
+export function consumirScroll(): number | null {
+  const y = _scrollAntesDeLancar;
+  _scrollAntesDeLancar = null;
+  return y;
+}
+
 interface Propriedades {
   ocorrencias: OcorrenciaPrevista[];
   comMes?: boolean;
@@ -59,23 +67,12 @@ export function ListaDePrevistos({
   const todasSelecionadas =
     pendentes.length > 0 && selecionadas.size === pendentes.length;
 
-  function salvarScroll() {
-    return window.scrollY;
-  }
-
-  function restaurarScroll(pos: number) {
-    requestAnimationFrame(() => {
-      window.scrollTo({ top: pos, behavior: 'auto' });
-    });
-  }
-
   async function lancarUma(ocorrencia: OcorrenciaPrevista) {
-    const scroll = salvarScroll();
+    capturarScroll();
     definirLancando(ocorrencia.chave);
     definirErro(null);
     try {
       await lancarPrevisto(ocorrencia);
-      restaurarScroll(scroll);
       aoLancar?.();
     } catch (falha) {
       definirErro(
@@ -92,13 +89,12 @@ export function ListaDePrevistos({
         ? pendentes.filter((o) => selecionadas.has(o.chave))
         : pendentes;
     if (alvo.length === 0) return;
-    const scroll = salvarScroll();
+    capturarScroll();
     definirLancando('batch');
     definirErro(null);
     try {
       await lancarPrevistos(alvo);
       definirSelecionadas(new Set());
-      restaurarScroll(scroll);
       aoLancar?.();
     } catch (falha) {
       definirErro(
