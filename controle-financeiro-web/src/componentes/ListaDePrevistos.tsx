@@ -9,13 +9,10 @@ import { comVariaveis } from '../utilitarios/estilo';
 import { Dinheiro } from './Dinheiro';
 
 let _scrollAntesDeLancar: number | null = null;
-
-function restaurarScroll() {
-  if (_scrollAntesDeLancar !== null) {
-    const y = _scrollAntesDeLancar;
-    _scrollAntesDeLancar = null;
-    window.scrollTo({ top: y, behavior: 'instant' });
-  }
+export function consumirScroll(): number | null {
+  const y = _scrollAntesDeLancar;
+  _scrollAntesDeLancar = null;
+  return y;
 }
 
 interface Propriedades {
@@ -71,6 +68,7 @@ export function ListaDePrevistos({
 
   async function lancarUma(ocorrencia: OcorrenciaPrevista) {
     _scrollAntesDeLancar = window.scrollY;
+    (document.activeElement as HTMLElement)?.blur?.();
     definirLancando(ocorrencia.chave);
     definirErro(null);
     try {
@@ -82,7 +80,6 @@ export function ListaDePrevistos({
       );
     } finally {
       definirLancando(null);
-      setTimeout(restaurarScroll, 0);
     }
   }
 
@@ -93,6 +90,7 @@ export function ListaDePrevistos({
         : pendentes;
     if (alvo.length === 0) return;
     _scrollAntesDeLancar = window.scrollY;
+    (document.activeElement as HTMLElement)?.blur?.();
     definirLancando('batch');
     definirErro(null);
     try {
@@ -105,7 +103,6 @@ export function ListaDePrevistos({
       );
     } finally {
       definirLancando(null);
-      setTimeout(restaurarScroll, 0);
     }
   }
 

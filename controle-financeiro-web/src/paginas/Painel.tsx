@@ -1,4 +1,4 @@
-import { useEffect, useMemo } from 'react';
+import { useEffect, useLayoutEffect, useMemo, useRef } from 'react';
 import { Link } from 'react-router-dom';
 
 import { BarrasDeCategoria } from '../componentes/BarrasDeCategoria';
@@ -7,7 +7,7 @@ import { CartaoResumo } from '../componentes/CartaoResumo';
 import { Dinheiro } from '../componentes/Dinheiro';
 import { Carregando, EstadoVazio, FaixaDeErro } from '../componentes/Estados';
 import { ListaDeLancamentos } from '../componentes/ListaDeLancamentos';
-import { ListaDePrevistos } from '../componentes/ListaDePrevistos';
+import { ListaDePrevistos, consumirScroll } from '../componentes/ListaDePrevistos';
 import { ReguaDoMes } from '../componentes/ReguaDoMes';
 import { useDados } from '../contextos/ContextoDados';
 import { useLancamento } from '../contextos/ContextoLancamento';
@@ -25,6 +25,18 @@ export function Painel() {
   const { mes, rotulo, ehMesAtual } = useMes();
   const { transacoes, resumo, carregando, erro, orcamento, previstosDoMes } = useDados();
   const { abrirNovo } = useLancamento();
+
+  const countAnteriorRef = useRef(previstosDoMes.length);
+
+  useLayoutEffect(() => {
+    if (previstosDoMes.length < countAnteriorRef.current) {
+      const y = consumirScroll();
+      if (y !== null) {
+        window.scrollTo(0, y);
+      }
+    }
+    countAnteriorRef.current = previstosDoMes.length;
+  }, [previstosDoMes.length]);
 
   const saidasPorCategoria = useMemo(() => totaisPorCategoria(transacoes, 'saida'), [transacoes]);
   const entradasPorCategoria = useMemo(
