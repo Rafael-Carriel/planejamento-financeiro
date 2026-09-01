@@ -1877,6 +1877,23 @@ button {
   display: none;
 }
 
+.barra-inferior-lista {
+  display: flex;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  gap: 2px;
+  width: 100%;
+  justify-content: space-around;
+  align-items: center;
+}
+
+.barra-inferior-item {
+  display: flex;
+  flex: 1;
+  justify-content: center;
+}
+
 .item-nav-mobile {
   display: flex;
   flex-direction: column;
