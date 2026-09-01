@@ -379,6 +379,7 @@ export function Previsao() {
                       {temOcorrencias ? (
                         <ListaDePrevistos
                           ocorrencias={mesPrevisto.ocorrencias}
+                          comSelecao
                           aoLancar={() => definirVersao((atual) => atual + 1)}
                         />
                       ) : null}
