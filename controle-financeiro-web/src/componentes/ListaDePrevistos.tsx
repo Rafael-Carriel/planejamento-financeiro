@@ -8,33 +8,26 @@ import { formatarData, formatarMoeda } from '../utilitarios/formatadores';
 import { comVariaveis } from '../utilitarios/estilo';
 import { Dinheiro } from './Dinheiro';
 
-let _scrollGuardId: number | null = null;
+let _scrollYNoBloqueio: number | null = null;
 
-function iniciarGuardaDeScroll(y: number) {
-  pararGuardaDeScroll();
-  let frames = 0;
-  const MAX_FRAMES = 30; // ~500ms a 60fps
-
-  function loop() {
-    frames++;
-    if (frames < MAX_FRAMES) {
-      if (Math.abs(window.scrollY - y) > 1) {
-        window.scrollTo(0, y);
-      }
-      _scrollGuardId = requestAnimationFrame(loop);
-    } else {
-      _scrollGuardId = null;
-    }
-  }
-
-  _scrollGuardId = requestAnimationFrame(loop);
+function bloquearScroll(y: number) {
+  _scrollYNoBloqueio = y;
+  document.body.style.position = 'fixed';
+  document.body.style.top = `-${y}px`;
+  document.body.style.left = '0';
+  document.body.style.right = '0';
+  document.body.style.overflow = 'hidden';
 }
 
-function pararGuardaDeScroll() {
-  if (_scrollGuardId !== null) {
-    cancelAnimationFrame(_scrollGuardId);
-    _scrollGuardId = null;
-  }
+function desbloquearScroll() {
+  const y = _scrollYNoBloqueio;
+  _scrollYNoBloqueio = null;
+  document.body.style.position = '';
+  document.body.style.top = '';
+  document.body.style.left = '';
+  document.body.style.right = '';
+  document.body.style.overflow = '';
+  if (y !== null) window.scrollTo(0, y);
 }
 
 interface Propriedades {
@@ -44,15 +37,6 @@ interface Propriedades {
   comSelecao?: boolean;
   aoLancar?: () => void;
 }
-
-const SELO_DA_SITUACAO: Record<
-  OcorrenciaPrevista['situacao'],
-  { classe: string; rotulo: string }
-> = {
-  lancada: { classe: 'selo-situacao selo-tranquilo', rotulo: 'lançado' },
-  atrasada: { classe: 'selo-situacao selo-estourado', rotulo: 'venceu' },
-  aVencer: { classe: 'selo-situacao selo-sem-limite', rotulo: 'a vencer' },
-};
 
 export function ListaDePrevistos({
   ocorrencias,
@@ -89,11 +73,9 @@ export function ListaDePrevistos({
     pendentes.length > 0 && selecionadas.size === pendentes.length;
 
   async function lancarUma(ocorrencia: OcorrenciaPrevista) {
-    const y = window.scrollY;
-    (document.activeElement as HTMLElement)?.blur?.();
+    bloquearScroll(window.scrollY);
     definirLancando(ocorrencia.chave);
     definirErro(null);
-    iniciarGuardaDeScroll(y);
     try {
       await lancarPrevisto(ocorrencia);
       aoLancar?.();
@@ -103,6 +85,7 @@ export function ListaDePrevistos({
       );
     } finally {
       definirLancando(null);
+      desbloquearScroll();
     }
   }
 
@@ -112,11 +95,9 @@ export function ListaDePrevistos({
         ? pendentes.filter((o) => selecionadas.has(o.chave))
         : pendentes;
     if (alvo.length === 0) return;
-    const y = window.scrollY;
-    (document.activeElement as HTMLElement)?.blur?.();
+    bloquearScroll(window.scrollY);
     definirLancando('batch');
     definirErro(null);
-    iniciarGuardaDeScroll(y);
     try {
       await lancarPrevistos(alvo);
       definirSelecionadas(new Set());
@@ -127,6 +108,7 @@ export function ListaDePrevistos({
       );
     } finally {
       definirLancando(null);
+      desbloquearScroll();
     }
   }
 
@@ -176,11 +158,9 @@ export function ListaDePrevistos({
       )}
 
       <ul className="lista-lancamentos">
-        {ocorrencias.map((ocorrencia) => {
+        {pendentes.map((ocorrencia) => {
           const categoria = descreverCategoria(ocorrencia.categoria);
           const ehEntrada = ocorrencia.tipo === 'entrada';
-          const selo = SELO_DA_SITUACAO[ocorrencia.situacao];
-          const jaLancada = ocorrencia.situacao === 'lancada';
           const estaSelecionada = selecionadas.has(ocorrencia.chave);
 
           return (
@@ -188,8 +168,8 @@ export function ListaDePrevistos({
               className={[
                 'lancamento',
                 'lancamento-com-acao',
-                !jaLancada && 'lancamento-previsto',
-                comSelecao && !jaLancada && estaSelecionada && 'lancamento-selecionado',
+                'lancamento-previsto',
+                comSelecao && estaSelecionada && 'lancamento-selecionado',
               ]
                 .filter(Boolean)
                 .join(' ')}
@@ -217,7 +197,11 @@ export function ListaDePrevistos({
                   <span>{ocorrencia.categoria}</span>
                   <span>· {formatarData(ocorrencia.data)}</span>
                   {comMes ? <span>· {rotuloDoMesCurto(ocorrencia.data)}</span> : null}
-                  <span className={selo.classe}>{selo.rotulo}</span>
+                  <span className={
+                    ocorrencia.situacao === 'atrasada'
+                      ? 'selo-situacao selo-estourado'
+                      : 'selo-situacao selo-sem-limite'
+                  }>{ocorrencia.situacao === 'atrasada' ? 'venceu' : 'a vencer'}</span>
                 </div>
               </div>
 
@@ -229,7 +213,7 @@ export function ListaDePrevistos({
               />
 
               <div className="lancamento-acao">
-                {jaLancada || semAcoes ? null : comSelecao ? (
+                {semAcoes ? null : comSelecao ? (
                   <input
                     type="checkbox"
                     className="previstos-checkbox-item"
