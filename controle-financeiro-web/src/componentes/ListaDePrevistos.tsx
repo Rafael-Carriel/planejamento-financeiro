@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 
 import { useDados } from '../contextos/ContextoDados';
 import { descricaoDaOcorrencia } from '../dominio/recorrencias';
@@ -8,34 +8,12 @@ import { formatarData, formatarMoeda } from '../utilitarios/formatadores';
 import { comVariaveis } from '../utilitarios/estilo';
 import { Dinheiro } from './Dinheiro';
 
-let _scrollYNoBloqueio: number | null = null;
-
-function bloquearScroll(y: number) {
-  _scrollYNoBloqueio = y;
-  document.body.style.position = 'fixed';
-  document.body.style.top = `-${y}px`;
-  document.body.style.left = '0';
-  document.body.style.right = '0';
-  document.body.style.overflow = 'hidden';
-}
-
-function desbloquearScroll() {
-  const y = _scrollYNoBloqueio;
-  _scrollYNoBloqueio = null;
-  document.body.style.position = '';
-  document.body.style.top = '';
-  document.body.style.left = '';
-  document.body.style.right = '';
-  document.body.style.overflow = '';
-  if (y !== null) window.scrollTo(0, y);
-}
-
 interface Propriedades {
   ocorrencias: OcorrenciaPrevista[];
   comMes?: boolean;
   semAcoes?: boolean;
   comSelecao?: boolean;
-  aoLancar?: () => void;
+  aoLancar?: (ocorrencias: OcorrenciaPrevista[]) => void | Promise<void>;
 }
 
 export function ListaDePrevistos({
@@ -49,8 +27,54 @@ export function ListaDePrevistos({
   const [lancando, definirLancando] = useState<string | null>(null);
   const [erro, definirErro] = useState<string | null>(null);
   const [selecionadas, definirSelecionadas] = useState<Set<string>>(new Set());
+  // A escrita no Firestore termina antes de algumas consultas refletirem o
+  // novo documento. Esconder a ocorrência confirmada localmente evita que o
+  // botão volte a ficar disponível nesse intervalo e elimina a necessidade de
+  // travar a rolagem da página inteira.
+  const [lancadasLocalmente, definirLancadasLocalmente] = useState<Set<string>>(
+    new Set(),
+  );
 
-  const pendentes = ocorrencias.filter((o) => o.situacao !== 'lancada');
+  const pendentes = useMemo(
+    () =>
+      ocorrencias.filter(
+        (ocorrencia) =>
+          ocorrencia.situacao !== 'lancada' &&
+          !lancadasLocalmente.has(ocorrencia.chave),
+      ),
+    [ocorrencias, lancadasLocalmente],
+  );
+
+  const acionaveis = useMemo(
+    () => pendentes.filter((ocorrencia) => ocorrencia.modoLancamento === 'confirmar'),
+    [pendentes],
+  );
+
+  // Assim que a fonte de dados confirmar o lançamento, o marcador provisório
+  // deixa de ser necessário. Se a transação for excluída depois, a previsão
+  // pode reaparecer normalmente em vez de ficar escondida para sempre.
+  useEffect(() => {
+    const confirmadas = new Set(
+      ocorrencias
+        .filter((ocorrencia) => ocorrencia.situacao === 'lancada')
+        .map((ocorrencia) => ocorrencia.chave),
+    );
+    if (confirmadas.size === 0) return;
+
+    definirLancadasLocalmente((anteriores) => {
+      const proximas = new Set(
+        [...anteriores].filter((chave) => !confirmadas.has(chave)),
+      );
+      return proximas.size === anteriores.size ? anteriores : proximas;
+    });
+  }, [ocorrencias]);
+
+  // Uma atualização externa pode lançar uma ocorrência que estava marcada.
+  // Só as chaves ainda visíveis participam dos totais e da ação em lote.
+  const selecionadasValidas = useMemo(() => {
+    const chavesPendentes = new Set(acionaveis.map((ocorrencia) => ocorrencia.chave));
+    return new Set([...selecionadas].filter((chave) => chavesPendentes.has(chave)));
+  }, [acionaveis, selecionadas]);
 
   const alternarSelecao = useCallback((chave: string) => {
     definirSelecionadas((anterior) => {
@@ -62,58 +86,65 @@ export function ListaDePrevistos({
   }, []);
 
   const selecionarTudo = useCallback(() => {
-    definirSelecionadas(new Set(pendentes.map((o) => o.chave)));
-  }, [pendentes]);
+    definirSelecionadas(new Set(acionaveis.map((o) => o.chave)));
+  }, [acionaveis]);
 
   const limparSelecao = useCallback(() => {
     definirSelecionadas(new Set());
   }, []);
 
   const todasSelecionadas =
-    pendentes.length > 0 && selecionadas.size === pendentes.length;
+    acionaveis.length > 0 && selecionadasValidas.size === acionaveis.length;
 
   async function lancarUma(ocorrencia: OcorrenciaPrevista) {
-    bloquearScroll(window.scrollY);
+    if (ocorrencia.modoLancamento === 'automatico') return;
     definirLancando(ocorrencia.chave);
     definirErro(null);
     try {
       await lancarPrevisto(ocorrencia);
-      aoLancar?.();
+      definirLancadasLocalmente((anteriores) => {
+        const proximas = new Set(anteriores);
+        proximas.add(ocorrencia.chave);
+        return proximas;
+      });
+      await aoLancar?.([ocorrencia]);
     } catch (falha) {
       definirErro(
         falha instanceof Error ? falha.message : 'Não deu para lançar. Tente de novo.',
       );
     } finally {
       definirLancando(null);
-      desbloquearScroll();
     }
   }
 
   async function lancarSelecionadas() {
     const alvo =
-      selecionadas.size > 0
-        ? pendentes.filter((o) => selecionadas.has(o.chave))
-        : pendentes;
+      selecionadasValidas.size > 0
+        ? acionaveis.filter((o) => selecionadasValidas.has(o.chave))
+        : acionaveis;
     if (alvo.length === 0) return;
-    bloquearScroll(window.scrollY);
     definirLancando('batch');
     definirErro(null);
     try {
       await lancarPrevistos(alvo);
+      definirLancadasLocalmente((anteriores) => {
+        const proximas = new Set(anteriores);
+        for (const ocorrencia of alvo) proximas.add(ocorrencia.chave);
+        return proximas;
+      });
       definirSelecionadas(new Set());
-      aoLancar?.();
+      await aoLancar?.(alvo);
     } catch (falha) {
       definirErro(
         falha instanceof Error ? falha.message : 'Não deu para lançar. Tente de novo.',
       );
     } finally {
       definirLancando(null);
-      desbloquearScroll();
     }
   }
 
-  const valoresSelecionados = pendentes
-    .filter((o) => selecionadas.has(o.chave))
+  const valoresSelecionados = acionaveis
+    .filter((o) => selecionadasValidas.has(o.chave))
     .reduce(
       (acc, o) => acc + (o.tipo === 'entrada' ? o.valor : -o.valor),
       0,
@@ -123,7 +154,7 @@ export function ListaDePrevistos({
     <>
       {erro ? <div className="aviso aviso-erro">{erro}</div> : null}
 
-      {comSelecao && pendentes.length > 0 && (
+      {comSelecao && acionaveis.length > 0 && (
         <div className="previstos-barra-acoes">
           <div className="previstos-selecao-info">
             <label className="previstos-checkbox-label">
@@ -135,9 +166,9 @@ export function ListaDePrevistos({
               />
               {todasSelecionadas ? 'Desmarcar tudo' : 'Selecionar tudo'}
             </label>
-            {selecionadas.size > 0 && (
+            {selecionadasValidas.size > 0 && (
               <span className="previstos-selecao-resumo">
-                {selecionadas.size} selecionado{selecionadas.size > 1 ? 's' : ''}{' '}
+                {selecionadasValidas.size} selecionado{selecionadasValidas.size > 1 ? 's' : ''}{' '}
                 · {formatarMoeda(Math.abs(valoresSelecionados))}
               </span>
             )}
@@ -150,9 +181,9 @@ export function ListaDePrevistos({
           >
             {lancando === 'batch'
               ? 'Lançando…'
-              : selecionadas.size > 0
-                ? `Lançar ${selecionadas.size} selecionado${selecionadas.size > 1 ? 's' : ''}`
-                : `Lançar tudo (${pendentes.length})`}
+              : selecionadasValidas.size > 0
+                ? `Lançar ${selecionadasValidas.size} selecionado${selecionadasValidas.size > 1 ? 's' : ''}`
+                : `Lançar tudo (${acionaveis.length})`}
           </button>
         </div>
       )}
@@ -161,7 +192,7 @@ export function ListaDePrevistos({
         {pendentes.map((ocorrencia) => {
           const categoria = descreverCategoria(ocorrencia.categoria);
           const ehEntrada = ocorrencia.tipo === 'entrada';
-          const estaSelecionada = selecionadas.has(ocorrencia.chave);
+          const estaSelecionada = selecionadasValidas.has(ocorrencia.chave);
 
           return (
             <li
@@ -213,7 +244,14 @@ export function ListaDePrevistos({
               />
 
               <div className="lancamento-acao">
-                {semAcoes ? null : comSelecao ? (
+                {semAcoes ? null : ocorrencia.modoLancamento === 'automatico' ? (
+                  <span
+                    className="selo-situacao selo-sem-limite"
+                    title="Será lançado automaticamente na data prevista"
+                  >
+                    automático
+                  </span>
+                ) : comSelecao ? (
                   <input
                     type="checkbox"
                     className="previstos-checkbox-item"

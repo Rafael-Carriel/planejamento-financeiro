@@ -47,7 +47,7 @@ const VOCABULARIO: Record<TipoTransacao, Vocabulario> = {
     botao: '+ Nova receita',
     rotuloDoTotal: 'Total que entrou',
     rotuloDoPrevisto: 'Ainda a receber',
-    tituloDoPrevisto: 'Receitas a confirmar',
+    tituloDoPrevisto: 'Receitas previstas',
     tituloVazio: 'Nenhuma receita neste mês',
     descricaoVazia:
       'Lance o salário, um freelance, uma venda — qualquer dinheiro que entrou. Os totais e as categorias se atualizam na hora.',
@@ -60,7 +60,7 @@ const VOCABULARIO: Record<TipoTransacao, Vocabulario> = {
     botao: '+ Nova despesa',
     rotuloDoTotal: 'Total que saiu',
     rotuloDoPrevisto: 'Ainda a pagar',
-    tituloDoPrevisto: 'Contas a confirmar',
+    tituloDoPrevisto: 'Contas previstas',
     tituloVazio: 'Nenhuma despesa neste mês',
     descricaoVazia:
       'Registre o aluguel, o mercado, uma assinatura. Com as saídas lançadas o planejamento passa a avisar quando um limite aperta.',
@@ -135,6 +135,9 @@ export function PaginaDeLancamentos({ tipo }: { tipo: TipoTransacao }) {
   const totalPrevisto = useMemo(() => somarOcorrencias(previstos), [previstos]);
   const quantosVenceram = previstos.filter(
     (ocorrencia) => ocorrencia.situacao === 'atrasada',
+  ).length;
+  const quantosAutomaticos = previstos.filter(
+    (ocorrencia) => ocorrencia.modoLancamento === 'automatico',
   ).length;
 
   function exportar() {
@@ -222,8 +225,10 @@ export function PaginaDeLancamentos({ tipo }: { tipo: TipoTransacao }) {
                   corDaFaixa="var(--destaque)"
                   nota={
                     quantosVenceram > 0
-                      ? `${quantosVenceram} ${quantosVenceram === 1 ? 'venceu' : 'venceram'} e ainda não ${quantosVenceram === 1 ? 'foi confirmado' : 'foram confirmados'}.`
-                      : `${previstos.length} ${previstos.length === 1 ? 'recorrência' : 'recorrências'} esperando confirmação.`
+                      ? `${quantosVenceram} ${quantosVenceram === 1 ? 'venceu e ainda está pendente' : 'venceram e ainda estão pendentes'}.`
+                      : quantosAutomaticos === previstos.length
+                        ? `${previstos.length} ${previstos.length === 1 ? 'recorrência automática' : 'recorrências automáticas'}.`
+                        : `${previstos.length} ${previstos.length === 1 ? 'recorrência prevista' : 'recorrências previstas'}.`
                   }
                 />
               ) : null}

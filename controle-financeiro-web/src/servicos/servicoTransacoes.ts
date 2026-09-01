@@ -8,6 +8,7 @@ import {
   onSnapshot,
   orderBy,
   query,
+  runTransaction,
   serverTimestamp,
   updateDoc,
   where,
@@ -17,6 +18,7 @@ import {
 
 import { bancoDeDados } from '../firebase/config';
 import type { DadosDeTransacao, Transacao, TipoTransacao } from '../tipos';
+import { chaveDoMes } from '../utilitarios/datas';
 
 /// Leitura e escrita de `usuarios/{uid}/transacoes`.
 ///
@@ -126,6 +128,29 @@ export async function criarTransacao(
     ...paraFirestore(dados),
     // Hora do servidor, não a do computador do usuário.
     criadoEm: serverTimestamp(),
+  });
+}
+
+/// Cria a ocorrência automática num documento de id estável. Duas abas podem
+/// tentar processar o mesmo mês ao mesmo tempo: ambas escrevem no mesmo caminho,
+/// portanto nunca surgem dois lançamentos para a mesma recorrência/mês.
+export async function criarTransacaoAutomatica(
+  uid: string,
+  recorrenciaId: string,
+  dados: DadosDeTransacao,
+): Promise<void> {
+  const idSeguro = recorrenciaId.replaceAll('/', '_');
+  const id = `automatica-${idSeguro}-${chaveDoMes(dados.data)}`;
+  const referencia = doc(bancoDeDados, 'usuarios', uid, 'transacoes', id);
+
+  await runTransaction(bancoDeDados, async (operacao) => {
+    const existente = await operacao.get(referencia);
+    if (existente.exists()) return;
+
+    operacao.set(referencia, {
+      ...paraFirestore(dados),
+      criadoEm: serverTimestamp(),
+    });
   });
 }
 

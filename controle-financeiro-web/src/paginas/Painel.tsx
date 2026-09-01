@@ -114,7 +114,7 @@ export function Painel() {
                 <div className="cartao-corpo">
                   <p className="texto-apoio" style={{ margin: 0 }}>
                     💡 <strong>Bem-vindo ao Painel!</strong> Aqui você vê tudo do mês de uma vez:
-                    o que entrou, o que saiu, e o que falta confirmar. Comece clicando em
+                    o que entrou, o que saiu e o que ainda está previsto. Comece clicando em
                     <strong> "+ Receita"</strong> ou <strong>"+ Despesa"</strong> para registrar seus primeiros lançamentos.
                   </p>
                 </div>
@@ -180,12 +180,12 @@ export function Painel() {
               />
             </div>
 
-            {/* FALTA CONFIRMAR — máx 5 itens */}
+            {/* PREVISTOS DO MÊS — máx 5 itens */}
             {previstosVisiveis.length > 0 ? (
               <section className="cartao">
                 <div className="cartao-cabeca">
                   <h2>
-                    Falta confirmar
+                    Previstos do mês
                     {atrasados.length > 0 ? (
                       <span className="selo-situacao selo-estourado" style={{ marginLeft: 8 }}>
                         {atrasados.length === 1

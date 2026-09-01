@@ -1,5 +1,6 @@
 import {
   chaveDoMes,
+  deChaveDoMes,
   diaDentroDoMes,
   diferencaEmMeses,
   hoje,
@@ -20,16 +21,15 @@ import type {
 /// Projeção das recorrências: de "todo mês, dia 5" para "cai em 05/09/2026".
 ///
 /// Nada aqui grava nada. As ocorrências são calculadas na hora de mostrar, a
-/// partir da recorrência e das transações que já existem. As vantagens de fazer
-/// assim, e não gerando lançamentos futuros no banco:
+/// partir da recorrência e das transações que já existem. Mesmo no modo
+/// automático, só a ocorrência vencida é gravada; o futuro continua projetado:
 ///
-/// - não precisa de rotina no servidor (Cloud Functions custam e podem falhar
-///   calado) nem de "gerar os lançamentos do mês" ao abrir o app;
+/// - não precisa de rotina no servidor ou de gerar lançamentos futuros;
 /// - mudar o valor do aluguel corrige o futuro sem reescrever o passado;
 /// - apagar a recorrência não deixa lançamento fantasma no mês que vem.
 ///
-/// O preço é este arquivo: uma ocorrência prevista só desaparece da lista quando
-/// existe, no mesmo mês, uma transação com `recorrenciaId` igual ao dela.
+/// Uma ocorrência prevista desaparece quando existe, no mesmo mês, uma
+/// transação com `recorrenciaId` igual ao dela.
 
 /// Quantos meses depois do início a recorrência cai neste mês. Negativo quer
 /// dizer que a série ainda não começou.
@@ -87,11 +87,47 @@ export function ocorrenciaDoMes(
     categoria: jaLancada ? jaLancada.categoria : recorrencia.categoria,
     data: jaLancada ? jaLancada.data : data,
     observacao: recorrencia.observacao,
+    modoLancamento: recorrencia.modoLancamento,
     parcela: recorrencia.parcelas === null ? null : indice + 1,
     totalDeParcelas: recorrencia.parcelas,
     situacao: jaLancada ? 'lancada' : situacaoDaData(data, referencia),
     transacaoId: jaLancada ? jaLancada.id : null,
   };
+}
+
+/// Meses vencidos que uma recorrência automática ainda precisa verificar.
+/// O primeiro mês automático é deliberadamente separado do início da série:
+/// trocar uma recorrência antiga para automática não cria anos de histórico.
+export function mesesAutomaticosPendentes(
+  recorrencia: Recorrencia,
+  referencia: Date = hoje(),
+): Date[] {
+  if (!recorrencia.ativa || recorrencia.modoLancamento !== 'automatico') return [];
+  if (!recorrencia.automaticoDesde) return [];
+
+  const primeiroPermitido =
+    recorrencia.inicio.getTime() > recorrencia.automaticoDesde.getTime()
+      ? recorrencia.inicio
+      : recorrencia.automaticoDesde;
+  const primeiro = recorrencia.automaticoAte
+    ? somarMeses(deChaveDoMes(recorrencia.automaticoAte), 1)
+    : primeiroPermitido;
+  const inicio = primeiro.getTime() > primeiroPermitido.getTime() ? primeiro : primeiroPermitido;
+  const mesAtual = inicioDoMes(referencia);
+  const quantidade = diferencaEmMeses(inicio, mesAtual);
+  if (quantidade < 0) return [];
+
+  const meses: Date[] = [];
+  for (let deslocamento = 0; deslocamento <= quantidade; deslocamento += 1) {
+    const mes = somarMeses(inicio, deslocamento);
+    if (!alcancaOMes(recorrencia, mes)) continue;
+
+    const data = diaDentroDoMes(mes, recorrencia.diaDoMes);
+    if (data.getTime() > referencia.getTime()) break;
+    meses.push(mes);
+  }
+
+  return meses;
 }
 
 function porData(a: OcorrenciaPrevista, b: OcorrenciaPrevista): number {

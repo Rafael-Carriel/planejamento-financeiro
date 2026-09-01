@@ -23,8 +23,8 @@ import { comVariaveis } from '../utilitarios/estilo';
 /// Recorrências: o que se repete todo mês, cadastrado uma única vez.
 ///
 /// Duas formas de repetição resolvem quase tudo: sem fim (salário, aluguel) e um
-/// número de vezes (o boleto em 3x). Nenhuma delas grava lançamento adiantado —
-/// os meses aparecem como previstos e viram lançamento quando o dinheiro mexe.
+/// número de vezes (o boleto em 3x). Cada cadastro escolhe se o lançamento
+/// acontece automaticamente na data ou se espera confirmação.
 
 export function Recorrencias() {
   const { rotulo } = useMes();
@@ -154,6 +154,11 @@ export function Recorrencias() {
                       encerrada
                     </span>
                   ) : null}
+                  <span className="selo-situacao selo-sem-limite" style={{ marginLeft: 8 }}>
+                    {recorrencia.modoLancamento === 'automatico'
+                      ? 'automática'
+                      : 'confirmação manual'}
+                  </span>
                 </div>
                 <div className="lancamento-meta">
                   <span
@@ -283,11 +288,10 @@ export function Recorrencias() {
             <div className="cartao">
               <div className="cartao-corpo">
                 <p className="texto-apoio" style={{ margin: 0 }}>
-                  Nada aqui é lançado sozinho. Cada mês mostra o que está previsto, e você
-                  confirma quando o dinheiro realmente entra ou sai — no painel, nas receitas,
-                  nas despesas ou na previsão. Mudar o valor de uma recorrência vale para os
-                  meses que ainda não foram confirmados; o que já virou lançamento fica como
-                  está.
+                  Recorrências automáticas viram lançamento na data programada. Se o app estiver
+                  fechado, isso acontece na próxima abertura, sem duplicar. Para valores que
+                  precisam de conferência, escolha confirmação manual. Alterações valem para os
+                  próximos meses; lançamentos já criados permanecem como estavam.
                 </p>
               </div>
             </div>

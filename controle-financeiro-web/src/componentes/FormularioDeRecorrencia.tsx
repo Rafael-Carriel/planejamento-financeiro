@@ -2,7 +2,12 @@ import { useEffect, useMemo, useState, type FormEvent } from 'react';
 
 import { useDados } from '../contextos/ContextoDados';
 import { mensagemDeErro } from '../servicos/servicoAutenticacao';
-import type { DadosDeRecorrencia, Recorrencia, TipoTransacao } from '../tipos';
+import type {
+  DadosDeRecorrencia,
+  ModoLancamentoRecorrente,
+  Recorrencia,
+  TipoTransacao,
+} from '../tipos';
 import {
   deCampoData,
   diaDentroDoMes,
@@ -39,6 +44,7 @@ interface Formulario {
   primeiraVez: string;
   repeticao: Repeticao;
   vezes: string;
+  modoLancamento: ModoLancamentoRecorrente;
   observacao: string;
 }
 
@@ -67,6 +73,7 @@ export function FormularioDeRecorrencia({
       vezes: recorrencia?.parcelas !== null && recorrencia?.parcelas !== undefined
         ? String(recorrencia.parcelas)
         : '3',
+      modoLancamento: recorrencia?.modoLancamento ?? 'automatico',
       observacao: recorrencia?.observacao ?? '',
     };
   });
@@ -135,6 +142,7 @@ export function FormularioDeRecorrencia({
       parcelas,
       // Editar não pode religar o que estava pausado sem o usuário pedir.
       ativa: recorrencia?.ativa ?? true,
+      modoLancamento: formulario.modoLancamento,
       observacao: observacao.length > 0 ? observacao : null,
     };
   }
@@ -194,8 +202,10 @@ export function FormularioDeRecorrencia({
       titulo={editando ? 'Editar recorrência' : ehEntrada ? 'Nova receita recorrente' : 'Nova conta recorrente'}
       descricao={
         editando
-          ? 'A mudança vale para os meses que ainda não foram lançados. O que já virou lançamento fica como está.'
-          : 'Nada é gravado como lançamento agora: os meses aparecem como previstos, e você confirma quando o dinheiro se mexer.'
+          ? 'A mudança vale para os próximos meses. O que já virou lançamento fica como está.'
+          : formulario.modoLancamento === 'automatico'
+            ? 'Na data escolhida, o lançamento será registrado automaticamente.'
+            : 'A cada mês, a ocorrência fica prevista até você confirmar.'
       }
       aoFechar={aoFechar}
       rodape={
@@ -294,6 +304,31 @@ export function FormularioDeRecorrencia({
               O dia escolhido vale para todos os meses. Mês curto usa o último dia.
             </span>
           </label>
+        </div>
+
+        <div className="campo">
+          <span>Como registrar</span>
+          <div className="alternador" role="group" aria-label="Como registrar a recorrência">
+            <button
+              type="button"
+              aria-pressed={formulario.modoLancamento === 'automatico'}
+              onClick={() => alterar('modoLancamento', 'automatico')}
+            >
+              Automático
+            </button>
+            <button
+              type="button"
+              aria-pressed={formulario.modoLancamento === 'confirmar'}
+              onClick={() => alterar('modoLancamento', 'confirmar')}
+            >
+              Confirmar manualmente
+            </button>
+          </div>
+          <span className="dica-campo">
+            {formulario.modoLancamento === 'automatico'
+              ? 'Lança sozinho na data. Se o app estiver fechado, lança na próxima vez que abrir.'
+              : 'Continua como previsão até você tocar em “Lançar”.'}
+          </span>
         </div>
 
         <div className="formulario-duas-colunas">

@@ -47,9 +47,9 @@ categoria, ordenação e exportação em CSV.
 
 **Recorrências** guarda o que se repete todo mês — salário, aluguel, assinatura,
 o boleto em 3x. Você cadastra uma vez, dizendo a data da primeira vez e se
-repete *sempre* ou um *número de vezes*. Nada é lançado automaticamente: cada mês
-mostra a ocorrência como **prevista**, e um clique em *Lançar* transforma a
-previsão em lançamento de verdade. Dá para pausar (⏸) sem perder o cadastro.
+repete *sempre* ou um *número de vezes*. Cada recorrência pode ser automática
+(vira lançamento na data; se o app estiver fechado, na próxima abertura) ou
+pedir confirmação manual. Dá para pausar (⏸) sem perder o cadastro.
 
 **Previsão** projeta os próximos 3, 6 ou 12 meses a partir das recorrências:
 quanto entra, quanto sai, o saldo de cada mês e o acumulado. Cada mês vem com a
@@ -101,14 +101,12 @@ categoria acontece no navegador, sobre a lista já carregada.
 Gravar valor negativo quebraria as regras do Firestore e os totais do app do
 celular.
 
-**Recorrência não grava nada sozinha.** A coleção `recorrencias` guarda só a
-regra (valor, dia do mês, início, quantas parcelas). As ocorrências de um mês
-são calculadas na hora, a partir da regra e das transações daquele mês. Uma
-previsão desaparece quando existe uma transação com `recorrenciaId` igual ao id
-da recorrência dentro do mês — esse campo é a única trava contra lançar duas
-vezes. Foi escolhido assim para não depender de Cloud Function nem de tarefa
-agendada: sem servidor rodando, nada some e nada duplica se o app ficar semanas
-fechado.
+**Automação sem duplicidade.** A coleção `recorrencias` guarda a regra (valor,
+dia, início, parcelas e modo de lançamento). Na data prevista, o app cria a
+transação automática; se estiver fechado, alcança os meses pendentes na próxima
+abertura. Cada ocorrência automática usa um documento com id estável por
+recorrência/mês, então duas abas não duplicam o lançamento. O campo
+`recorrenciaId` também permite reconhecer confirmações manuais já existentes.
 
 ## Regras do Firestore
 

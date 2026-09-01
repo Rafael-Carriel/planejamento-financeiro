@@ -9,6 +9,10 @@
 /// regras de segurança — não traduzir nem acentuar.
 export type TipoTransacao = 'entrada' | 'saida';
 
+/// Uma recorrência pode virar lançamento sozinha na data prevista ou esperar
+/// a confirmação do usuário.
+export type ModoLancamentoRecorrente = 'automatico' | 'confirmar';
+
 /// Um lançamento financeiro do usuário.
 ///
 /// O `valor` é sempre positivo; o sinal vem do `tipo`. Isso evita registros
@@ -112,11 +116,9 @@ export interface LinhaDePlanejamento {
 
 /// Um combinado que se repete todo mês: salário, aluguel, boleto em parcelas.
 ///
-/// Mora em `usuarios/{uid}/recorrencias`. Não é lançamento: nada é gravado em
-/// `transacoes` por conta dela. As ocorrências são calculadas na hora de mostrar
-/// (`OcorrenciaPrevista`) e só viram transação quando o usuário confirma.
-/// Assim não existe rotina no servidor para manter, e mudar o valor conserta o
-/// futuro sem reescrever o passado.
+/// Mora em `usuarios/{uid}/recorrencias`. As ocorrências são calculadas na hora
+/// de mostrar (`OcorrenciaPrevista`) e podem virar transação automaticamente ou
+/// após confirmação, conforme o modo escolhido.
 export interface Recorrencia {
   id: string;
   descricao: string;
@@ -131,6 +133,12 @@ export interface Recorrencia {
   parcelas: number | null;
   /// Recorrência pausada continua na lista, mas não gera previsão.
   ativa: boolean;
+  modoLancamento: ModoLancamentoRecorrente;
+  /// Primeiro mês que pode ser gerado automaticamente. Evita que ativar o modo
+  /// automático hoje crie retroativamente todo o histórico da recorrência.
+  automaticoDesde: Date | null;
+  /// Último mês já verificado no modo automático, no formato `aaaa-mm`.
+  automaticoAte: string | null;
   observacao: string | null;
   criadoEm: Date | null;
 }
@@ -145,6 +153,7 @@ export interface DadosDeRecorrencia {
   inicio: Date;
   parcelas: number | null;
   ativa: boolean;
+  modoLancamento: ModoLancamentoRecorrente;
   observacao: string | null;
 }
 
@@ -169,6 +178,7 @@ export interface OcorrenciaPrevista {
   categoria: string;
   data: Date;
   observacao: string | null;
+  modoLancamento: ModoLancamentoRecorrente;
   /// Qual parcela é esta, de 1 em diante. `null` quando a série não tem fim.
   parcela: number | null;
   totalDeParcelas: number | null;

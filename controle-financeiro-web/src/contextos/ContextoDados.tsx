@@ -12,6 +12,8 @@ import { CATEGORIAS_BASE, corDerivadaDoNome } from '../dados/catalogoCategorias'
 import { RESUMO_VAZIO, resumir } from '../dominio/calculos';
 import {
   descricaoDaOcorrencia,
+  mesesAutomaticosPendentes,
+  ocorrenciaDoMes,
   ocorrenciasDoMes,
   pendentes,
 } from '../dominio/recorrencias';
@@ -33,12 +35,15 @@ import {
   criarRecorrencia,
   definirRecorrenciaAtiva,
   excluirRecorrencia,
+  marcarRecorrenciaAutomaticaProcessada,
   observarRecorrencias,
 } from '../servicos/servicoRecorrencias';
 import {
   atualizarTransacao,
+  criarTransacaoAutomatica,
   criarTransacao,
   excluirTransacao,
+  lerTransacoes,
   observarTransacoes,
 } from '../servicos/servicoTransacoes';
 import type {
@@ -52,7 +57,13 @@ import type {
   TipoTransacao,
   Transacao,
 } from '../tipos';
-import { chaveDoMes, somarMeses } from '../utilitarios/datas';
+import {
+  chaveDoMes,
+  hoje,
+  inicioDoProximoMes,
+  mesmoMes,
+  somarMeses,
+} from '../utilitarios/datas';
 import { useAutenticacao } from './ContextoAutenticacao';
 import { useMes } from './ContextoMes';
 
@@ -113,9 +124,28 @@ export function ProvedorDeDados({ children }: { children: ReactNode }) {
   const [transacoes, definirTransacoes] = useState<Transacao[]>([]);
   const [carregando, definirCarregando] = useState(true);
   const [erro, definirErro] = useState<string | null>(null);
+  const [erroAutomatico, definirErroAutomatico] = useState<string | null>(null);
+  const [referenciaAutomatica, definirReferenciaAutomatica] = useState(hoje);
   const [categoriasPersonalizadas, definirCategoriasPersonalizadas] = useState<Categoria[]>([]);
   const [orcamento, definirOrcamento] = useState<Orcamento>(ORCAMENTO_VAZIO);
   const [recorrencias, definirRecorrencias] = useState<Recorrencia[]>([]);
+
+  // Mantém o processamento diário mesmo se o usuário deixar o app aberto.
+  // Um segundo depois da meia-noite troca a referência e reavalia as datas.
+  useEffect(() => {
+    const agora = new Date();
+    const proximaVirada = new Date(
+      agora.getFullYear(),
+      agora.getMonth(),
+      agora.getDate() + 1,
+      0,
+      0,
+      1,
+    );
+    const espera = proximaVirada.getTime() - agora.getTime();
+    const relogio = window.setTimeout(() => definirReferenciaAutomatica(hoje()), espera);
+    return () => window.clearTimeout(relogio);
+  }, [referenciaAutomatica]);
 
   // Transações do mês: a assinatura única do app.
   useEffect(() => {
@@ -165,6 +195,91 @@ export function ProvedorDeDados({ children }: { children: ReactNode }) {
 
     return encerrar;
   }, [uid]);
+
+  // Gera as ocorrências automáticas vencidas. O app não precisa ficar aberto
+  // na hora exata: os meses ainda não processados são alcançados na próxima
+  // abertura. IDs determinísticos nas transações tornam a operação idempotente.
+  useEffect(() => {
+    if (!uid) return;
+    const usuarioId: string = uid;
+
+    const tarefas = recorrencias.flatMap((recorrencia) =>
+      mesesAutomaticosPendentes(recorrencia, referenciaAutomatica).map((mesDaOcorrencia) => ({
+        recorrencia,
+        mesDaOcorrencia,
+      })),
+    );
+
+    if (tarefas.length === 0) {
+      definirErroAutomatico(null);
+      return;
+    }
+
+    let ativo = true;
+
+    async function processar() {
+      const datas = tarefas.map((tarefa) => tarefa.mesDaOcorrencia.getTime());
+      const primeiroMes = new Date(Math.min(...datas));
+      const ultimoMes = new Date(Math.max(...datas));
+      const existentes = await lerTransacoes(
+        usuarioId,
+        primeiroMes,
+        inicioDoProximoMes(ultimoMes),
+      );
+
+      for (const { recorrencia, mesDaOcorrencia } of tarefas) {
+        if (!ativo) return;
+        const doMes = existentes.filter((transacao) =>
+          mesmoMes(transacao.data, mesDaOcorrencia),
+        );
+        const ocorrencia = ocorrenciaDoMes(
+          recorrencia,
+          mesDaOcorrencia,
+          doMes,
+          referenciaAutomatica,
+        );
+        if (!ocorrencia || ocorrencia.situacao === 'lancada') continue;
+
+        await criarTransacaoAutomatica(usuarioId, recorrencia.id, {
+          descricao: descricaoDaOcorrencia(ocorrencia),
+          valor: ocorrencia.valor,
+          tipo: ocorrencia.tipo,
+          categoria: ocorrencia.categoria,
+          data: ocorrencia.data,
+          observacao: ocorrencia.observacao,
+          recorrenciaId: ocorrencia.recorrenciaId,
+        });
+      }
+
+      const ultimoPorRecorrencia = new Map<string, Date>();
+      for (const { recorrencia, mesDaOcorrencia } of tarefas) {
+        ultimoPorRecorrencia.set(recorrencia.id, mesDaOcorrencia);
+      }
+
+      for (const [recorrenciaId, ultimoProcessado] of ultimoPorRecorrencia) {
+        if (!ativo) return;
+        await marcarRecorrenciaAutomaticaProcessada(
+          usuarioId,
+          recorrenciaId,
+          ultimoProcessado,
+        );
+      }
+
+      if (ativo) definirErroAutomatico(null);
+    }
+
+    void processar().catch((falha: unknown) => {
+      if (!ativo) return;
+      console.error('Falha ao processar recorrências automáticas.', falha);
+      definirErroAutomatico(
+        `Não foi possível lançar as recorrências automáticas. ${mensagemDeErro(falha)}`,
+      );
+    });
+
+    return () => {
+      ativo = false;
+    };
+  }, [uid, recorrencias, referenciaAutomatica]);
 
   // Planejamento do mês selecionado.
   useEffect(() => {
@@ -280,7 +395,7 @@ export function ProvedorDeDados({ children }: { children: ReactNode }) {
       transacoes,
       resumo,
       carregando,
-      erro,
+      erro: erro ?? erroAutomatico,
       categorias,
       categoriasPersonalizadas,
       categoriasDoTipo,
@@ -314,12 +429,21 @@ export function ProvedorDeDados({ children }: { children: ReactNode }) {
       copiarPlanejamentoDoMesAnterior,
       salvarRecorrencia: async (dados, id) => {
         if (!uid) throw new Error('Entre na conta para criar recorrências.');
-        if (id) await atualizarRecorrencia(uid, id, dados);
+        if (id) {
+          const anterior = recorrencias.find((recorrencia) => recorrencia.id === id) ?? null;
+          await atualizarRecorrencia(uid, id, dados, anterior);
+        }
         else await criarRecorrencia(uid, dados);
       },
       alternarRecorrencia: async (id, ativa) => {
         if (!uid) return;
-        await definirRecorrenciaAtiva(uid, id, ativa);
+        const recorrencia = recorrencias.find((item) => item.id === id);
+        await definirRecorrenciaAtiva(
+          uid,
+          id,
+          ativa,
+          recorrencia?.modoLancamento === 'automatico',
+        );
       },
       removerRecorrencia: async (id) => {
         if (!uid) return;
@@ -328,6 +452,7 @@ export function ProvedorDeDados({ children }: { children: ReactNode }) {
       lancarPrevisto: async (ocorrencia) => {
         if (!uid) throw new Error('Entre na conta para lançar.');
         if (ocorrencia.situacao === 'lancada') return;
+        if (ocorrencia.modoLancamento === 'automatico') return;
 
         await criarTransacao(uid, {
           descricao: descricaoDaOcorrencia(ocorrencia),
@@ -341,7 +466,9 @@ export function ProvedorDeDados({ children }: { children: ReactNode }) {
       },
       lancarPrevistos: async (ocorrencias) => {
         if (!uid) throw new Error('Entre na conta para lançar.');
-        const pendentes = ocorrencias.filter((o) => o.situacao !== 'lancada');
+        const pendentes = ocorrencias.filter(
+          (o) => o.situacao !== 'lancada' && o.modoLancamento === 'confirmar',
+        );
         await Promise.all(
           pendentes.map((ocorrencia) =>
             criarTransacao(uid, {
@@ -362,6 +489,7 @@ export function ProvedorDeDados({ children }: { children: ReactNode }) {
       resumo,
       carregando,
       erro,
+      erroAutomatico,
       categorias,
       categoriasPersonalizadas,
       categoriasDoTipo,

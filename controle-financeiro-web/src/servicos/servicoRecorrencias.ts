@@ -14,7 +14,7 @@ import {
 } from 'firebase/firestore';
 
 import { bancoDeDados } from '../firebase/config';
-import { inicioDoMes } from '../utilitarios/datas';
+import { chaveDoMes, inicioDoMes, somarMeses } from '../utilitarios/datas';
 import type { DadosDeRecorrencia, Recorrencia, TipoTransacao } from '../tipos';
 
 /// Leitura e escrita de `usuarios/{uid}/recorrencias`.
@@ -66,6 +66,17 @@ function paraRecorrencia(documento: QueryDocumentSnapshot<DocumentData>): Recorr
     // Ausente conta como ativa: recorrência gravada por uma versão antiga do app
     // continua valendo.
     ativa: dados.ativa !== false,
+    // Documentos antigos não tinham modo: continuam pedindo confirmação para
+    // não transformar previsões históricas em lançamentos sem consentimento.
+    modoLancamento: dados.modoLancamento === 'automatico' ? 'automatico' : 'confirmar',
+    automaticoDesde:
+      dados.automaticoDesde instanceof Timestamp
+        ? inicioDoMes(dados.automaticoDesde.toDate())
+        : null,
+    automaticoAte:
+      typeof dados.automaticoAte === 'string' && /^\d{4}-\d{2}$/.test(dados.automaticoAte)
+        ? dados.automaticoAte
+        : null,
     observacao:
       typeof dados.observacao === 'string' && dados.observacao.trim().length > 0
         ? dados.observacao.trim()
@@ -99,6 +110,7 @@ function paraFirestore(dados: DadosDeRecorrencia) {
     parcelas:
       dados.parcelas !== null && dados.parcelas >= 1 ? Math.trunc(dados.parcelas) : null,
     ativa: dados.ativa,
+    modoLancamento: dados.modoLancamento,
     observacao:
       dados.observacao && dados.observacao.trim().length > 0
         ? dados.observacao.trim()
@@ -111,8 +123,12 @@ export async function criarRecorrencia(
   uid: string,
   dados: DadosDeRecorrencia,
 ): Promise<string> {
+  const agora = inicioDoMes(new Date());
+  const automatica = dados.modoLancamento === 'automatico';
   const criado = await addDoc(colecaoDeRecorrencias(uid), {
     ...paraFirestore(dados),
+    automaticoDesde: automatica ? Timestamp.fromDate(agora) : null,
+    automaticoAte: automatica ? chaveDoMes(somarMeses(agora, -1)) : null,
     criadoEm: serverTimestamp(),
   });
   return criado.id;
@@ -122,10 +138,31 @@ export async function atualizarRecorrencia(
   uid: string,
   id: string,
   dados: DadosDeRecorrencia,
+  anterior: Recorrencia | null,
 ): Promise<void> {
+  const agora = inicioDoMes(new Date());
+  const continuouAutomatica =
+    dados.modoLancamento === 'automatico' &&
+    anterior?.modoLancamento === 'automatico';
   await updateDoc(
     doc(bancoDeDados, 'usuarios', uid, 'recorrencias', id),
-    paraFirestore(dados),
+    {
+      ...paraFirestore(dados),
+      automaticoDesde:
+        dados.modoLancamento === 'automatico'
+          ? Timestamp.fromDate(
+              continuouAutomatica && anterior?.automaticoDesde
+                ? anterior.automaticoDesde
+                : agora,
+            )
+          : null,
+      automaticoAte:
+        dados.modoLancamento === 'automatico'
+          ? continuouAutomatica
+            ? anterior?.automaticoAte ?? chaveDoMes(somarMeses(agora, -1))
+            : chaveDoMes(somarMeses(agora, -1))
+          : null,
+    },
   );
 }
 
@@ -134,9 +171,29 @@ export async function definirRecorrenciaAtiva(
   uid: string,
   id: string,
   ativa: boolean,
+  automatica: boolean,
 ): Promise<void> {
+  const agora = inicioDoMes(new Date());
   await updateDoc(doc(bancoDeDados, 'usuarios', uid, 'recorrencias', id), {
     ativa,
+    ...(automatica
+      ? {
+          // Ao pausar, o mês atual fica encerrado. Ao retomar, só o mês atual
+          // volta a ser elegível; meses inteiros durante a pausa são ignorados.
+          automaticoAte: chaveDoMes(ativa ? somarMeses(agora, -1) : agora),
+        }
+      : {}),
+    atualizadoEm: serverTimestamp(),
+  });
+}
+
+export async function marcarRecorrenciaAutomaticaProcessada(
+  uid: string,
+  id: string,
+  mes: Date,
+): Promise<void> {
+  await updateDoc(doc(bancoDeDados, 'usuarios', uid, 'recorrencias', id), {
+    automaticoAte: chaveDoMes(mes),
     atualizadoEm: serverTimestamp(),
   });
 }

@@ -32,10 +32,8 @@ service cloud.firestore {
         allow create, update: if ehDono(uid) && orcamentoValido();
       }
 
-      // Combinados que se repetem todo mês: salário, aluguel, boleto em
-      // parcelas. Não são lançamentos — nada é gravado em `transacoes` por conta
-      // deles. O app web calcula as ocorrências na hora de mostrar e só grava
-      // transação quando o usuário confirma.
+      // Combinados que se repetem todo mês: salário, aluguel e parcelas. O modo
+      // define se o app web lança na data prevista ou espera confirmação.
       match /recorrencias/{recorrenciaId} {
         allow read, delete: if ehDono(uid);
         allow create, update: if ehDono(uid) && recorrenciaValida();
@@ -148,6 +146,7 @@ service cloud.firestore {
       return dados.keys().hasOnly([
             'descricao', 'valor', 'tipo', 'categoria', 'diaDoMes',
             'inicio', 'parcelas', 'ativa', 'observacao',
+            'modoLancamento', 'automaticoDesde', 'automaticoAte',
             'criadoEm', 'atualizadoEm',
           ])
         && dados.descricao is string
@@ -169,6 +168,22 @@ service cloud.firestore {
           || (dados.parcelas is int && dados.parcelas >= 1 && dados.parcelas <= 600)
         )
         && dados.ativa is bool
+        // Os três campos são opcionais para manter compatibilidade com versões
+        // antigas e com o app móvel. Ausência significa confirmação manual.
+        && (
+          !('modoLancamento' in dados)
+          || dados.modoLancamento in ['automatico', 'confirmar']
+        )
+        && (
+          !('automaticoDesde' in dados)
+          || dados.automaticoDesde == null
+          || dados.automaticoDesde is timestamp
+        )
+        && (
+          !('automaticoAte' in dados)
+          || dados.automaticoAte == null
+          || (dados.automaticoAte is string && dados.automaticoAte.size() == 7)
+        )
         && (
           dados.observacao == null
           || (dados.observacao is string && dados.observacao.size() <= 500)

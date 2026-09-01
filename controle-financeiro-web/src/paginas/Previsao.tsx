@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 
 import { CabecalhoDaPagina } from '../componentes/CabecalhoDaPagina';
@@ -46,42 +46,78 @@ export function Previsao() {
   const [quantidade, definirQuantidade] = useState<Periodo>(6);
   const [transacoes, definirTransacoes] = useState<Transacao[]>([]);
   const [carregando, definirCarregando] = useState(true);
+  const [atualizando, definirAtualizando] = useState(false);
   const [erro, definirErro] = useState<string | null>(null);
-  // Contador de releitura: lançar um previsto de um mês futuro não passa pela
-  // assinatura ao vivo (que só cobre o mês selecionado), então a lista precisa
-  // pedir os dados de novo.
-  const [versao, definirVersao] = useState(0);
+  // Impede que uma resposta antiga sobrescreva um período escolhido enquanto
+  // outra leitura ainda estava em andamento.
+  const ultimaLeitura = useRef(0);
 
   const meses = useMemo(() => proximosMeses(mes, quantidade), [mes, quantidade]);
 
   useEffect(() => {
-    if (!uid) return;
+    if (!uid) {
+      definirTransacoes([]);
+      definirCarregando(false);
+      return;
+    }
 
     const primeiro = meses[0];
     const ultimo = meses[meses.length - 1];
     if (!primeiro || !ultimo) return;
 
-    let vivo = true;
+    const leitura = ++ultimaLeitura.current;
     definirCarregando(true);
+    definirAtualizando(false);
     definirErro(null);
 
     lerTransacoes(uid, primeiro, inicioDoProximoMes(ultimo))
       .then((recebidas) => {
-        if (!vivo) return;
+        if (leitura !== ultimaLeitura.current) return;
         definirTransacoes(recebidas);
         definirCarregando(false);
       })
       .catch((falha: unknown) => {
-        if (!vivo) return;
+        if (leitura !== ultimaLeitura.current) return;
         console.error('Falha ao ler a previsão.', falha);
         definirErro(mensagemDeErro(falha));
         definirCarregando(false);
       });
 
     return () => {
-      vivo = false;
+      ultimaLeitura.current += 1;
     };
-  }, [uid, meses, versao]);
+  }, [uid, meses]);
+
+  // Depois de confirmar uma previsão, mantém toda a tela montada e atualiza
+  // somente os dados. Assim os cartões, o gráfico e a posição da rolagem não
+  // desaparecem enquanto a consulta alcança a escrita recém-feita.
+  const atualizarPrevisao = useCallback(async () => {
+    if (!uid) return;
+
+    const primeiro = meses[0];
+    const ultimo = meses[meses.length - 1];
+    if (!primeiro || !ultimo) return;
+
+    const leitura = ++ultimaLeitura.current;
+    definirAtualizando(true);
+    definirErro(null);
+
+    try {
+      const recebidas = await lerTransacoes(
+        uid,
+        primeiro,
+        inicioDoProximoMes(ultimo),
+      );
+      if (leitura !== ultimaLeitura.current) return;
+      definirTransacoes(recebidas);
+    } catch (falha) {
+      if (leitura !== ultimaLeitura.current) return;
+      console.error('Falha ao atualizar a previsão.', falha);
+      definirErro(mensagemDeErro(falha));
+    } finally {
+      if (leitura === ultimaLeitura.current) definirAtualizando(false);
+    }
+  }, [uid, meses]);
 
   const previsao = useMemo(
     () => previsaoDosMeses(recorrencias, meses, transacoes),
@@ -292,13 +328,15 @@ export function Previsao() {
                       <th>Saídas</th>
                       <th>Saldo do mês</th>
                       <th>Acumulado</th>
-                      <th>A confirmar</th>
+                      <th>Confirmação manual</th>
                     </tr>
                   </thead>
                   <tbody>
                     {previsao.map((mesPrevisto) => {
                       const aConfirmar = mesPrevisto.ocorrencias.filter(
-                        (ocorrencia) => ocorrencia.situacao !== 'lancada',
+                        (ocorrencia) =>
+                          ocorrencia.situacao !== 'lancada' &&
+                          ocorrencia.modoLancamento === 'confirmar',
                       ).length;
 
                       return (
@@ -380,7 +418,7 @@ export function Previsao() {
                         <ListaDePrevistos
                           ocorrencias={mesPrevisto.ocorrencias}
                           comSelecao
-                          aoLancar={() => definirVersao((atual) => atual + 1)}
+                          aoLancar={atualizarPrevisao}
                         />
                       ) : null}
                     </div>
@@ -391,6 +429,9 @@ export function Previsao() {
           </>
         )}
       </div>
+      <span className="somente-leitor-de-tela" role="status" aria-live="polite">
+        {atualizando ? 'Atualizando a previsão…' : ''}
+      </span>
     </>
   );
 }
