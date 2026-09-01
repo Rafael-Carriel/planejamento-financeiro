@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef } from 'react';
+import { useMemo } from 'react';
 import { Link } from 'react-router-dom';
 
 import { BarrasDeCategoria } from '../componentes/BarrasDeCategoria';
@@ -25,26 +25,6 @@ export function Painel() {
   const { mes, rotulo, ehMesAtual } = useMes();
   const { transacoes, resumo, carregando, erro, orcamento, previstosDoMes } = useDados();
   const { abrirNovo } = useLancamento();
-
-  const scrollAnteriorRef = useRef(0);
-  const countAnteriorRef = useRef(previstosDoMes.length);
-
-  useEffect(() => {
-    const salvarScroll = () => {
-      scrollAnteriorRef.current = window.scrollY;
-    };
-    window.addEventListener('scroll', salvarScroll, { passive: true });
-    return () => window.removeEventListener('scroll', salvarScroll);
-  }, []);
-
-  useEffect(() => {
-    if (previstosDoMes.length < countAnteriorRef.current) {
-      requestAnimationFrame(() => {
-        window.scrollTo({ top: scrollAnteriorRef.current, behavior: 'auto' });
-      });
-    }
-    countAnteriorRef.current = previstosDoMes.length;
-  }, [previstosDoMes.length]);
 
   const saidasPorCategoria = useMemo(() => totaisPorCategoria(transacoes, 'saida'), [transacoes]);
   const entradasPorCategoria = useMemo(

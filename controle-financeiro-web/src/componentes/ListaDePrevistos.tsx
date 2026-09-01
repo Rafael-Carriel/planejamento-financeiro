@@ -59,11 +59,23 @@ export function ListaDePrevistos({
   const todasSelecionadas =
     pendentes.length > 0 && selecionadas.size === pendentes.length;
 
+  function salvarScroll() {
+    return window.scrollY;
+  }
+
+  function restaurarScroll(pos: number) {
+    requestAnimationFrame(() => {
+      window.scrollTo({ top: pos, behavior: 'auto' });
+    });
+  }
+
   async function lancarUma(ocorrencia: OcorrenciaPrevista) {
+    const scroll = salvarScroll();
     definirLancando(ocorrencia.chave);
     definirErro(null);
     try {
       await lancarPrevisto(ocorrencia);
+      restaurarScroll(scroll);
       aoLancar?.();
     } catch (falha) {
       definirErro(
@@ -80,11 +92,13 @@ export function ListaDePrevistos({
         ? pendentes.filter((o) => selecionadas.has(o.chave))
         : pendentes;
     if (alvo.length === 0) return;
+    const scroll = salvarScroll();
     definirLancando('batch');
     definirErro(null);
     try {
       await lancarPrevistos(alvo);
       definirSelecionadas(new Set());
+      restaurarScroll(scroll);
       aoLancar?.();
     } catch (falha) {
       definirErro(
@@ -160,15 +174,6 @@ export function ListaDePrevistos({
                 .join(' ')}
               key={ocorrencia.chave}
             >
-              {comSelecao && !jaLancada && (
-                <input
-                  type="checkbox"
-                  className="previstos-checkbox-item"
-                  checked={estaSelecionada}
-                  onChange={() => alternarSelecao(ocorrencia.chave)}
-                />
-              )}
-
               <span
                 className="lancamento-selo"
                 style={comVariaveis({
@@ -203,7 +208,14 @@ export function ListaDePrevistos({
               />
 
               <div className="lancamento-acao">
-                {jaLancada || semAcoes ? null : (
+                {jaLancada || semAcoes ? null : comSelecao ? (
+                  <input
+                    type="checkbox"
+                    className="previstos-checkbox-item"
+                    checked={estaSelecionada}
+                    onChange={() => alternarSelecao(ocorrencia.chave)}
+                  />
+                ) : (
                   <button
                     type="button"
                     className="botao-texto"
