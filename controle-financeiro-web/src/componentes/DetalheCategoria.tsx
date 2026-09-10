@@ -100,24 +100,31 @@ export function DetalheCategoria({ categoria, aoFechar }: Propriedades) {
     const projetado = previsaoDosMeses(recorrencias, mesesPrevisao, transacoes);
 
     return projetado.map((mesPrevisto) => {
-      const saidasCategoria = mesPrevisto.ocorrencias
-        .filter((o) => o.tipo === 'saida' && o.categoria === categoria.nome)
+      // Só as previstas ainda não lançadas: a ocorrência já lançada virou
+      // transação e entra pela soma de baixo — contá-la aqui dobraria o mês.
+      const previstasDaCategoria = mesPrevisto.ocorrencias
+        .filter(
+          (o) =>
+            o.situacao !== 'lancada' &&
+            o.tipo === categoria.tipo &&
+            o.categoria === categoria.nome,
+        )
         .reduce((soma, o) => soma + o.valor, 0);
 
-      const saidasLancadasCategoria = transacoesDaCategoria
+      const lancadasDaCategoria = transacoesDaCategoria
         .filter(
           (t) =>
-            chaveDoMes(t.data) === mesPrevisto.chave && t.tipo === 'saida',
+            chaveDoMes(t.data) === mesPrevisto.chave && t.tipo === categoria.tipo,
         )
         .reduce((soma, t) => soma + t.valor, 0);
 
       return {
         chave: mesPrevisto.chave,
         inicio: mesPrevisto.inicio,
-        valor: saidasLancadasCategoria + saidasCategoria,
+        valor: lancadasDaCategoria + previstasDaCategoria,
       };
     });
-  }, [recorrencias, mesesPrevisao, transacoes, transacoesDaCategoria, categoria.nome]);
+  }, [recorrencias, mesesPrevisao, transacoes, transacoesDaCategoria, categoria.nome, categoria.tipo]);
 
   // Total gasto no histórico.
   const totalHistorico = useMemo(

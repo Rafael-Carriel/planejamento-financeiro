@@ -85,6 +85,14 @@
 
   /* === Largura === */
   --largura-barra: 260px;
+
+  /* === Apelidos ===
+     Nomes usados em estilos inline de algumas páginas (Relatórios, Reserva).
+     Apontam para os tokens canônicos para não ficarem indefinidos. */
+  --fundo: var(--papel);
+  --cartao-fundo: var(--cartao);
+  --cinza-claro: var(--papel-profundo);
+  --atencao: var(--alerta);
 }
 
 /* --------------------------------------------------------------------------
@@ -409,6 +417,8 @@ button {
   padding: 12px 14px;
   font-size: 0.875rem;
   border: none;
+  background: var(--papel-profundo);
+  color: var(--tinta-media);
 }
 
 .aviso-erro {
@@ -527,7 +537,7 @@ button {
   line-height: 1.25;
 }
 
-.marca-nome span {
+.marca-sub {
   display: block;
   font-family: var(--fonte-texto);
   font-size: 0.7rem;
@@ -881,6 +891,12 @@ button {
   grid-template-columns: 1fr 1fr;
   gap: 16px;
   margin-bottom: 8px;
+}
+
+/* Sem previstos, só o cartão de saldo aparece: ocupa a linha inteira em vez de
+   ficar solto na metade esquerda. */
+.painel-hero-solo {
+  grid-template-columns: 1fr;
 }
 
 .painel-saldo-card {
@@ -2101,6 +2117,188 @@ button {
 }
 
 /* --------------------------------------------------------------------------
+   Correções de componentes
+   Regras de sub-elementos que faltavam depois do redesenho da folha. Sem elas
+   a navegação vinha com marcadores de lista, os campos de alguns formulários
+   ficavam sem borda e os botões de reserva saíam sem cor.
+   -------------------------------------------------------------------------- */
+
+/* Navegação lateral: sem a lista o <ul> herdava recuo e marcadores do navegador */
+.navegacao-lista {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.navegacao-item {
+  display: block;
+}
+
+/* O contêiner do conteúdo é a célula da grade: sem min-width:0 uma tabela larga
+   estoura a página inteira no computador. */
+.conteudo-wrapper {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.conteudo-conteiner {
+  min-width: 0;
+}
+
+/* Cabeçalho da página: linha do título com botão de voltar */
+.cabecalho-linha-superior {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+
+.cabecalho-voltar {
+  display: inline-grid;
+  place-items: center;
+  flex: 0 0 auto;
+  width: 38px;
+  height: 38px;
+  border-radius: var(--raio-pequeno);
+  background: var(--cartao);
+  color: var(--tinta-media);
+  font-size: 1.5rem;
+  line-height: 1;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+  transition: all 0.2s ease;
+}
+
+.cabecalho-voltar:hover {
+  color: var(--tinta);
+  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.08);
+  transform: translateY(-1px);
+}
+
+.cabecalho-acoes-extras {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+/* Cartão de resumo: cabeça com ícone + rótulo */
+.cartao-resumo-cabeca {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.cartao-resumo-titulo {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.cartao-resumo-icone {
+  font-size: 1.05rem;
+  line-height: 1;
+}
+
+.cartao-resumo-valor-envolto {
+  min-width: 0;
+}
+
+/* Linha de botões */
+.botoes {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.botao-entrada {
+  background: var(--gradiente-entrada);
+  color: #fff;
+  box-shadow: 0 2px 8px rgba(5, 150, 105, 0.3);
+}
+
+.botao-entrada:hover:not(:disabled) {
+  box-shadow: 0 6px 20px rgba(5, 150, 105, 0.4);
+  transform: translateY(-2px);
+}
+
+.botao-saida {
+  background: var(--gradiente-saida);
+  color: #fff;
+  box-shadow: 0 2px 8px rgba(225, 29, 72, 0.3);
+}
+
+.botao-saida:hover:not(:disabled) {
+  box-shadow: 0 6px 20px rgba(225, 29, 72, 0.4);
+  transform: translateY(-2px);
+}
+
+/* Campos que usam o par rótulo + grupo (Dívidas, Reserva). O input recebe a
+   classe .campo direto, então o seletor precisa alcançá-lo pelos dois caminhos. */
+.campo-grupo {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+
+.campo-rotulo {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--tinta-media);
+  letter-spacing: 0.01em;
+}
+
+.campo-grupo input,
+.campo-grupo select,
+.campo-grupo textarea,
+input.campo,
+select.campo,
+textarea.campo {
+  display: block;
+  font: inherit;
+  width: 100%;
+  padding: 12px 14px;
+  border: 1.5px solid var(--borda);
+  border-radius: var(--raio-pequeno);
+  background: var(--cartao);
+  color: var(--tinta);
+  transition: all 0.2s ease;
+}
+
+.campo-grupo input:hover,
+.campo-grupo select:hover,
+.campo-grupo textarea:hover,
+input.campo:hover,
+select.campo:hover,
+textarea.campo:hover {
+  border-color: var(--borda-forte);
+}
+
+.campo-grupo input:focus,
+.campo-grupo select:focus,
+.campo-grupo textarea:focus,
+input.campo:focus,
+select.campo:focus,
+textarea.campo:focus {
+  outline: none;
+  border-color: var(--destaque);
+  box-shadow: 0 0 0 3px var(--destaque-glow), 0 1px 3px rgba(109, 40, 217, 0.06);
+}
+
+/* Detalhe da categoria: seções empilhadas dentro do modal */
+.detalhe-categoria {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+/* --------------------------------------------------------------------------
    Responsivo
    -------------------------------------------------------------------------- */
 
@@ -2189,7 +2387,7 @@ button {
   }
 
   .lancamento {
-    grid-template-columns: 36px 1fr auto;
+    grid-template-columns: 36px 1fr auto auto;
     gap: 10px;
   }
 
@@ -2197,8 +2395,16 @@ button {
     grid-template-columns: 36px 1fr auto auto;
   }
 
+  /* No celular não há hover: as ações de editar/excluir precisam ficar sempre
+     visíveis, senão não há como editar nem excluir um lançamento no telefone. */
   .lancamento-acoes {
-    display: none;
+    display: flex;
+    opacity: 1;
+  }
+
+  .acao-miuda {
+    width: 38px;
+    height: 38px;
   }
 
   .linha-planejamento {
@@ -2244,6 +2450,22 @@ button {
 
   .cabecalho-acoes .botao {
     width: 100%;
+  }
+
+  /* Empilha os dois cartões do topo do Painel: lado a lado, num telefone
+     estreito, o valor de 2.25rem era cortado pelo overflow do cartão. */
+  .painel-hero {
+    grid-template-columns: 1fr;
+  }
+
+  .painel-saldo-valor {
+    font-size: 1.85rem;
+  }
+
+  /* Alvo de toque maior para a navegação de mês, presente em quase toda tela. */
+  .seletor-mes button {
+    width: 40px;
+    height: 40px;
   }
 }
 

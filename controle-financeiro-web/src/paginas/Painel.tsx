@@ -122,7 +122,7 @@ export function Painel() {
             )}
 
             {/* HERO: Saldo + Projetado — o mais importante */}
-            <div className="painel-hero">
+            <div className={`painel-hero${previstosDoMes.length > 0 ? '' : ' painel-hero-solo'}`}>
               <div className={`painel-saldo-card ${resumo.saldo >= 0 ? 'positivo' : 'negativo'}`}>
                 <span className="painel-saldo-rotulo">Saldo do mês</span>
                 <Dinheiro valor={resumo.saldo} cor="saldo" className="painel-saldo-valor" />

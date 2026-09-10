@@ -43,7 +43,7 @@ interface CategoriaFixa {
 export function Relatorios() {
   const { usuario } = useAutenticacao();
   const { mes, chave } = useMes();
-  const { resumo: resumoMesAtual, orcamento } = useDados();
+  const { orcamento } = useDados();
   const uid = usuario?.uid ?? null;
 
   const [quantidade, definirQuantidade] = useState<Periodo>(6);
@@ -133,6 +133,7 @@ export function Relatorios() {
       classificacao,
       cor,
       taxaDePoupanca,
+      economiaMedia: (totalEntradas - totalSaidas) / mesesComMovimento.length,
       mediaSaidas,
       mesesComSaldoPositivo,
       totalMeses: mesesComMovimento.length,
@@ -239,8 +240,12 @@ export function Relatorios() {
     const mesesComMovimento = resumos.filter((r) => r.quantidade > 0);
     if (mesesComMovimento.length === 0) return null;
 
-    const mediaEntradas = resumos.reduce((s, r) => s + r.entradas, 0) / resumos.length;
-    const mediaSaidas = resumos.reduce((s, r) => s + r.saidas, 0) / resumos.length;
+    // Média sobre os meses com movimento — dividir pelo tamanho da janela
+    // (que inclui meses vazios) diluía a média e subestimava a projeção.
+    const mediaEntradas =
+      mesesComMovimento.reduce((s, r) => s + r.entradas, 0) / mesesComMovimento.length;
+    const mediaSaidas =
+      mesesComMovimento.reduce((s, r) => s + r.saidas, 0) / mesesComMovimento.length;
     const mediaSaldo = mediaEntradas - mediaSaidas;
 
     // Projetar 6 meses à frente
@@ -381,8 +386,8 @@ export function Relatorios() {
 
                   <div className="grade-resumo" style={{ marginTop: 0 }}>
                     <CartaoResumo
-                      rotulo="Taxa de poupança"
-                      valor={saudeFinanceira.taxaDePoupanca * resumoMesAtual.entradas}
+                      rotulo="Poupança média"
+                      valor={saudeFinanceira.economiaMedia}
                       cor="entrada"
                       corDaFaixa="var(--entrada)"
                       nota={`${formatarPorcentagem(saudeFinanceira.taxaDePoupanca)} das entradas.`}

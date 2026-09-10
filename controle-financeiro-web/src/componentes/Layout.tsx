@@ -54,8 +54,7 @@ export function Layout() {
             <img src="/logo.png" alt="" className="marca-logo" />
           </div>
           <div className="marca-texto">
-            <span className="marca-nome">Planeja</span>
-            <span className="marca-subtitulo">planejamento financeiro</span>
+            <span className="marca-nome">Planejamento financeiro</span>
           </div>
         </div>
 

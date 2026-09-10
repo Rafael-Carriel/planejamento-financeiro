@@ -7,6 +7,7 @@ import { Carregando, EstadoVazio, FaixaDeErro } from '../componentes/Estados';
 import { Modal } from '../componentes/Modal';
 import { useAutenticacao } from '../contextos/ContextoAutenticacao';
 import { useDados } from '../contextos/ContextoDados';
+import { pesoMensal } from '../dominio/recorrencias';
 import { formatarMoeda, formatarPorcentagem, interpretarValor } from '../utilitarios/formatadores';
 import {
   type DadosDaReserva,
@@ -25,7 +26,7 @@ import { formatarData } from '../utilitarios/formatadores';
 
 export function ReservaEmergencia() {
   const { usuario } = useAutenticacao();
-  const { resumo } = useDados();
+  const { resumo, recorrencias } = useDados();
   const uid = usuario?.uid ?? null;
 
   const [reserva, definirReserva] = useState<DadosDaReserva | null>(null);
@@ -66,12 +67,19 @@ export function ReservaEmergencia() {
     return () => { vivo = false; };
   }, [uid]);
 
-  // Meta automática: 6 meses de despesas (editável)
-  const metaAutomatica = resumo.saidas * 6;
-  const metaFinal = reserva?.meta ?? metaAutomatica;
+  // Base mensal de despesas: o maior entre o que já saiu neste mês e o peso das
+  // recorrências fixas. Assim a meta não zera num mês ainda sem lançamentos, nem
+  // ignora contas fixas que ainda não venceram.
+  const despesaMensal = Math.max(resumo.saidas, pesoMensal(recorrencias).saidas);
+
+  // Meta automática: 6 meses de despesas. Só vale quando o usuário não definiu
+  // uma meta própria — o serviço devolve `meta: 0` quando nunca foi configurada,
+  // então testar só `?? metaAutomatica` nunca disparava.
+  const metaAutomatica = despesaMensal * 6;
+  const metaFinal = reserva?.meta && reserva.meta > 0 ? reserva.meta : metaAutomatica;
   const valorAtual = reserva?.valorAtual ?? 0;
   const progresso = metaFinal > 0 ? Math.min(valorAtual / metaFinal, 1) : 0;
-  const mesesCobertos = resumo.saidas > 0 ? valorAtual / resumo.saidas : 0;
+  const mesesCobertos = despesaMensal > 0 ? valorAtual / despesaMensal : 0;
   const falta = Math.max(0, metaFinal - valorAtual);
 
   async function salvarMeta() {
@@ -228,6 +236,7 @@ export function ReservaEmergencia() {
                   <CartaoResumo
                     rotulo="Cobertura"
                     valor={mesesCobertos}
+                    textoValor={`${mesesCobertos.toFixed(1).replace('.', ',')} meses`}
                     cor="saldo"
                     corDaFaixa="var(--destaque)"
                     nota={mesesCobertos >= 6 ? '✅ Meta atingida!' : mesesCobertos >= 3 ? '📊 Bom progresso' : '⚠️ Continue guardando'}
@@ -244,7 +253,7 @@ export function ReservaEmergencia() {
                     valor={metaFinal}
                     cor="saldo"
                     corDaFaixa="var(--tinta-fraca)"
-                    nota={`${formatarMoeda(resumo.saidas)} × 6 meses`}
+                    nota={`${formatarMoeda(despesaMensal)} × 6 meses`}
                   />
                 </div>
 

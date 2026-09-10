@@ -14,9 +14,12 @@ interface Propriedades {
   nota?: string;
   /// Emoji ou ícone que aparece ao lado do rótulo.
   icone?: string;
+  /// Quando presente, mostra este texto no lugar do valor em dinheiro — para
+  /// cartões cujo número não é moeda (ex.: "3,5 meses" de cobertura).
+  textoValor?: string;
 }
 
-export function CartaoResumo({ rotulo, valor, cor, corDaFaixa, nota, icone }: Propriedades) {
+export function CartaoResumo({ rotulo, valor, cor, corDaFaixa, nota, icone, textoValor }: Propriedades) {
   return (
     <article
       className="cartao cartao-resumo"
@@ -34,7 +37,11 @@ export function CartaoResumo({ rotulo, valor, cor, corDaFaixa, nota, icone }: Pr
       </div>
 
       <div className="cartao-resumo-valor-envolto">
-        <Dinheiro valor={valor} cor={cor} className="cartao-resumo-valor" />
+        {textoValor !== undefined ? (
+          <span className="cartao-resumo-valor">{textoValor}</span>
+        ) : (
+          <Dinheiro valor={valor} cor={cor} className="cartao-resumo-valor" />
+        )}
       </div>
 
       {nota ? (
