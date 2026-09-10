@@ -11,6 +11,7 @@ import { Despesas } from './paginas/Despesas';
 import { Dividas } from './paginas/Dividas';
 import { Entrada } from './paginas/Entrada';
 import { Historico } from './paginas/Historico';
+import { Objetivos } from './paginas/Objetivos';
 import { Painel } from './paginas/Painel';
 import { Planejamento } from './paginas/Planejamento';
 import { Previsao } from './paginas/Previsao';
@@ -49,6 +50,7 @@ function Portao() {
             <Route path="historico" element={<Historico />} />
             <Route path="relatorios" element={<Relatorios />} />
             <Route path="reserva-emergencia" element={<ReservaEmergencia />} />
+            <Route path="objetivos" element={<Objetivos />} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Route>
         </Routes>

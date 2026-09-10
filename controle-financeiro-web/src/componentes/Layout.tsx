@@ -28,6 +28,7 @@ const ITENS: ItemDeNavegacao[] = [
   { para: '/historico', rotulo: 'Histórico', rotuloCurto: 'Histórico', icone: '≡' },
   { para: '/relatorios', rotulo: 'Relatórios', rotuloCurto: 'Relatórios', icone: '📊' },
   { para: '/reserva-emergencia', rotulo: 'Reserva', rotuloCurto: 'Reserva', icone: '🛡' },
+  { para: '/objetivos', rotulo: 'Objetivos', rotuloCurto: 'Objetivos', icone: '🎯' },
 ];
 
 const ITENS_PRINCIPAIS = ['/', '/receitas', '/despesas', '/recorrencias', '/dividas'];

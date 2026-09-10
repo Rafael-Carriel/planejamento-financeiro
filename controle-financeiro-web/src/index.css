@@ -2520,3 +2520,155 @@ textarea.campo:focus {
   white-space: nowrap;
   border: 0;
 }
+
+/* ─── Objetivos financeiros ─── */
+.grade-objetivos {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(270px, 1fr));
+  gap: 16px;
+}
+
+.objetivo-cartao {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  width: 100%;
+  padding: 18px;
+  font: inherit;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: transform 0.15s ease, box-shadow 0.2s ease;
+}
+
+.objetivo-cartao:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--sombra-media, 0 12px 28px rgba(15, 23, 42, 0.12));
+}
+
+.objetivo-cabeca {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.objetivo-emoji {
+  flex-shrink: 0;
+  width: 46px;
+  height: 46px;
+  display: grid;
+  place-items: center;
+  font-size: 1.6rem;
+  line-height: 1;
+  background: var(--papel-profundo);
+  border-radius: var(--raio-pequeno);
+}
+
+.objetivo-titulos {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.objetivo-nome {
+  font-weight: 650;
+  color: var(--tinta);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.objetivo-prazo {
+  font-size: 0.78rem;
+  color: var(--tinta-fraca);
+}
+
+.objetivo-barra {
+  height: 12px;
+  border-radius: 99px;
+  background: var(--papel-profundo);
+  overflow: hidden;
+}
+
+.objetivo-barra-preenchida {
+  height: 100%;
+  border-radius: 99px;
+  transition: width 0.5s ease;
+}
+
+.objetivo-numeros {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.objetivo-guardado {
+  font-weight: 700;
+  color: var(--tinta);
+}
+
+.objetivo-alvo {
+  font-size: 0.85rem;
+  color: var(--tinta-fraca);
+}
+
+/* Seletor de emoji do formulário de objetivo */
+.seletor-emoji {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.emoji-opcao {
+  width: 42px;
+  height: 42px;
+  display: grid;
+  place-items: center;
+  font-size: 1.3rem;
+  background: var(--papel-profundo);
+  border: 2px solid transparent;
+  border-radius: var(--raio-pequeno);
+  cursor: pointer;
+  transition: border-color 0.15s ease, transform 0.1s ease;
+}
+
+.emoji-opcao:hover {
+  transform: scale(1.08);
+}
+
+.emoji-opcao.ativo {
+  border-color: var(--destaque);
+  background: var(--cartao, #fff);
+}
+
+/* Detalhe do objetivo (dentro do modal) */
+.objetivo-detalhe {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.objetivo-detalhe-numeros {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.objetivo-detalhe-numeros .cartao-resumo-valor {
+  display: block;
+}
+
+.objetivo-extrato {
+  margin-top: 12px;
+  border-top: 1px solid var(--borda);
+  padding-top: 8px;
+}
+
+.objetivo-extrato-titulo {
+  font-size: 0.9rem;
+  color: var(--tinta-media);
+  margin: 4px 0;
+}
