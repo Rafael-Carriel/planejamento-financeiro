@@ -159,7 +159,8 @@ export async function atualizarTransacao(
   id: string,
   dados: DadosDeTransacao,
 ): Promise<void> {
-  await updateDoc(doc(bancoDeDados, 'usuarios', uid, 'transacoes', id), paraFirestore(dados));
+  const referencia = doc(bancoDeDados, 'usuarios', uid, 'transacoes', id);
+  await updateDoc(referencia, paraFirestore(dados));
 }
 
 export async function excluirTransacao(uid: string, id: string): Promise<void> {

@@ -17,6 +17,9 @@ import {
   lerPerfil,
   observarUsuario,
   sair as sairDoFirebase,
+  atualizarNome as atualizarNomeNoFirebase,
+  atualizarEmail as atualizarEmailNoFirebase,
+  atualizarSenha as atualizarSenhaNoFirebase,
 } from '../servicos/servicoAutenticacao';
 import type { Perfil } from '../tipos';
 
@@ -36,6 +39,9 @@ interface ValorDaAutenticacao {
   sair: () => Promise<void>;
   redefinirSenha: (email: string) => Promise<void>;
   recarregarPerfil: () => Promise<void>;
+  atualizarNome: (nome: string) => Promise<void>;
+  atualizarEmail: (novoEmail: string, senhaAtual: string) => Promise<void>;
+  atualizarSenha: (senhaAtual: string, novaSenha: string) => Promise<void>;
 }
 
 const ContextoAutenticacao = createContext<ValorDaAutenticacao | null>(null);
@@ -99,6 +105,19 @@ export function ProvedorDeAutenticacao({ children }: { children: ReactNode }) {
       },
       recarregarPerfil: async () => {
         if (usuario) await carregarPerfil(usuario.uid, usuario.email ?? '');
+      },
+      atualizarNome: async (nome) => {
+        if (!usuario) throw new Error('Nenhum usuário autenticado.');
+        await atualizarNomeNoFirebase(usuario.uid, nome);
+        await carregarPerfil(usuario.uid, usuario.email ?? '');
+      },
+      atualizarEmail: async (novoEmail, senhaAtual) => {
+        if (!usuario) throw new Error('Nenhum usuário autenticado.');
+        await atualizarEmailNoFirebase(usuario.uid, novoEmail, senhaAtual);
+        await carregarPerfil(usuario.uid, novoEmail);
+      },
+      atualizarSenha: async (senhaAtual, novaSenha) => {
+        await atualizarSenhaNoFirebase(senhaAtual, novaSenha);
       },
     };
   }, [usuario, perfil, carregando, carregarPerfil]);

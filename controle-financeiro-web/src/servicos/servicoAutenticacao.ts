@@ -5,6 +5,8 @@ import {
   sendPasswordResetEmail,
   signInWithEmailAndPassword,
   signOut,
+  updateEmail,
+  updatePassword,
   updateProfile,
   type User,
 } from 'firebase/auth';
@@ -48,6 +50,8 @@ export async function criarConta(
     await garantirPerfil(credencial.user.uid, nomeLimpo, credencial.user.email ?? email.trim());
   } catch (erro) {
     console.error('Conta criada, mas o perfil não foi gravado agora.', erro);
+    // Re-throw para que o caller possa tratar o erro se necessário
+    throw erro;
   }
 }
 
@@ -66,38 +70,24 @@ export async function enviarRedefinicaoDeSenha(email: string): Promise<void> {
 /// qualquer outro faz a escrita ser recusada. `tokensFcm` é do app Flutter, que
 /// cuida das notificações — a web não mexe nele.
 ///
-/// Passar `nome` vazio é o caso de quem só está entrando: aí o perfil é criado
-/// com um palpite a partir do e-mail e nunca sobrescreve o nome já gravado.
-/// Isso resolve a corrida entre o cadastro (que já sabe o nome) e o observador
-/// de sessão (que dispara junto e não sabe): quem tem nome de verdade ganha,
-/// independente da ordem em que as duas chamadas chegarem.
+/// Usa `merge: true` sempre para evitar race conditions entre cadastro e
+/// observador de sessão — ambos podem chegar ao mesmo tempo.
 export async function garantirPerfil(
   uid: string,
   nome: string,
   email: string,
 ): Promise<void> {
   const referencia = documentoDoUsuario(uid);
-  const atual = await getDoc(referencia);
   const nomeLimpo = nome.trim();
 
-  if (!atual.exists()) {
-    await setDoc(referencia, {
-      nome: nomeLimpo.length > 0 ? nomeLimpo : email.split('@')[0],
-      email,
-      criadoEm: serverTimestamp(),
-      atualizadoEm: serverTimestamp(),
-    });
-    return;
-  }
-
-  const dados = atual.data();
-  const nomeGravado = typeof dados.nome === 'string' ? dados.nome.trim() : '';
-  if (nomeLimpo.length > 0 && nomeLimpo !== nomeGravado) {
-    await updateDoc(referencia, {
-      nome: nomeLimpo,
-      atualizadoEm: serverTimestamp(),
-    });
-  }
+  // Sempre merge: true para evitar race condition entre cadastro e observador.
+  // Se o documento já existe, só sobrescreve os campos informados.
+  await setDoc(referencia, {
+    nome: nomeLimpo.length > 0 ? nomeLimpo : email.split('@')[0],
+    email,
+    criadoEm: serverTimestamp(),
+    atualizadoEm: serverTimestamp(),
+  }, { merge: true });
 }
 
 export async function lerPerfil(uid: string): Promise<Perfil | null> {
@@ -114,14 +104,75 @@ export async function lerPerfil(uid: string): Promise<Perfil | null> {
 
 export async function atualizarNome(uid: string, nome: string): Promise<void> {
   const nomeLimpo = nome.trim();
+  if (nomeLimpo.length === 0) {
+    throw new Error('O nome não pode ficar vazio.');
+  }
+
+  // Atualiza o Firestore primeiro — se falhar, o displayName não muda.
   await updateDoc(documentoDoUsuario(uid), {
     nome: nomeLimpo,
     atualizadoEm: serverTimestamp(),
   });
 
+  // Atualiza o displayName do Firebase Auth.
   if (auth.currentUser) {
     await updateProfile(auth.currentUser, { displayName: nomeLimpo });
   }
+}
+
+/// Atualiza o e-mail no Firebase Auth e no Firestore.
+///
+/// Reautenticação é obrigatória para trocar e-mail ( Firebase exigência de
+/// segurança). O Firestore é atualizado apenas se a operação no Auth succeed.
+export async function atualizarEmail(
+  uid: string,
+  novoEmail: string,
+  senhaAtual: string,
+): Promise<void> {
+  const emailLimpo = novoEmail.trim();
+  if (emailLimpo.length === 0) {
+    throw new Error('O e-mail não pode ficar vazio.');
+  }
+
+  const usuario = auth.currentUser;
+  if (!usuario || !usuario.email) {
+    throw new Error('Nenhum usuário autenticado.');
+  }
+
+  // Reautenticação é obrigatória para operações sensíveis.
+  const credencial = await signInWithEmailAndPassword(auth, usuario.email, senhaAtual);
+
+  // Atualiza o e-mail no Firebase Auth.
+  await updateEmail(credencial.user, emailLimpo);
+
+  // Atualiza o Firestore.
+  await updateDoc(documentoDoUsuario(uid), {
+    email: emailLimpo,
+    atualizadoEm: serverTimestamp(),
+  });
+}
+
+/// Troca a senha do usuário.
+///
+/// Reautenticação é obrigatória. A nova senha deve ter pelo menos 6 caracteres.
+export async function atualizarSenha(
+  senhaAtual: string,
+  novaSenha: string,
+): Promise<void> {
+  if (novaSenha.length < 6) {
+    throw new Error('A nova senha precisa de pelo menos 6 caracteres.');
+  }
+
+  const usuario = auth.currentUser;
+  if (!usuario || !usuario.email) {
+    throw new Error('Nenhum usuário autenticado.');
+  }
+
+  // Reautenticação é obrigatória para operações sensíveis.
+  const credencial = await signInWithEmailAndPassword(auth, usuario.email, senhaAtual);
+
+  // Atualiza a senha.
+  await updatePassword(credencial.user, novaSenha);
 }
 
 /// Traduz o erro do Firebase para uma frase que diz o que fazer.

@@ -1653,6 +1653,40 @@ button {
   border-top: 1px solid var(--borda);
 }
 
+/* ─── Abas do Perfil ─── */
+.abas-perfil {
+  display: flex;
+  gap: 4px;
+  padding: 4px;
+  background: var(--papel-profundo);
+  border-radius: var(--raio-pequeno);
+  margin-bottom: 20px;
+}
+
+.abas-perfil .aba {
+  flex: 1;
+  padding: 10px 16px;
+  border: none;
+  background: transparent;
+  border-radius: 8px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--tinta-media);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.abas-perfil .aba:hover {
+  color: var(--tinta);
+  background: rgba(255, 255, 255, 0.5);
+}
+
+.abas-perfil .aba.ativa {
+  background: var(--cartao);
+  color: var(--destaque);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
 .formulario {
   display: flex;
   flex-direction: column;

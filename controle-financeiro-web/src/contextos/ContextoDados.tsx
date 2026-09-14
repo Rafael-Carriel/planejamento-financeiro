@@ -215,7 +215,9 @@ export function ProvedorDeDados({ children }: { children: ReactNode }) {
       return;
     }
 
-    let ativo = true;
+    // AbortController para cancelamento limpo — substitui a flag boolean
+    // anterior que sofria de race condition.
+    const controlador = new AbortController();
 
     async function processar() {
       const datas = tarefas.map((tarefa) => tarefa.mesDaOcorrencia.getTime());
@@ -228,7 +230,7 @@ export function ProvedorDeDados({ children }: { children: ReactNode }) {
       );
 
       for (const { recorrencia, mesDaOcorrencia } of tarefas) {
-        if (!ativo) return;
+        if (controlador.signal.aborted) return;
         const doMes = existentes.filter((transacao) =>
           mesmoMes(transacao.data, mesDaOcorrencia),
         );
@@ -257,7 +259,7 @@ export function ProvedorDeDados({ children }: { children: ReactNode }) {
       }
 
       for (const [recorrenciaId, ultimoProcessado] of ultimoPorRecorrencia) {
-        if (!ativo) return;
+        if (controlador.signal.aborted) return;
         await marcarRecorrenciaAutomaticaProcessada(
           usuarioId,
           recorrenciaId,
@@ -265,11 +267,11 @@ export function ProvedorDeDados({ children }: { children: ReactNode }) {
         );
       }
 
-      if (ativo) definirErroAutomatico(null);
+      if (!controlador.signal.aborted) definirErroAutomatico(null);
     }
 
     void processar().catch((falha: unknown) => {
-      if (!ativo) return;
+      if (controlador.signal.aborted) return;
       console.error('Falha ao processar recorrências automáticas.', falha);
       definirErroAutomatico(
         `Não foi possível lançar as recorrências automáticas. ${mensagemDeErro(falha)}`,
@@ -277,7 +279,7 @@ export function ProvedorDeDados({ children }: { children: ReactNode }) {
     });
 
     return () => {
-      ativo = false;
+      controlador.abort();
     };
   }, [uid, recorrencias, referenciaAutomatica]);
 
