@@ -84,6 +84,7 @@ export function FormularioDeTransacao({ transacao, tipoInicial, aoFechar }: Prop
 
     const valor = interpretarValor(formulario.valor);
     if (valor === null || valor <= 0) return 'Informe um valor maior que zero.';
+    if (valor > 100_000_000) return 'O valor máximo é R$ 100.000.000,00.';
 
     if (formulario.categoria.length === 0) return 'Escolha uma categoria.';
 

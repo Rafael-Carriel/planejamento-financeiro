@@ -60,7 +60,9 @@ class Transacao {
       tipo: TipoTransacao.doCodigo(dados['tipo'] as String?),
       categoria: (dados['categoria'] as String?) ?? 'Outros',
       data: (dados['data'] as Timestamp?)?.toDate() ?? DateTime.now(),
-      observacao: (dados['observacao'] as String?)?.trim(),
+      observacao: (dados['observacao'] as String?)?.trim().isEmpty == true
+          ? null
+          : (dados['observacao'] as String?)?.trim(),
       criadoEm: (dados['criadoEm'] as Timestamp?)?.toDate(),
     );
   }

@@ -13,6 +13,7 @@ import {
   criarConta as criarContaNoFirebase,
   entrar as entrarNoFirebase,
   enviarRedefinicaoDeSenha,
+  enviarVerificacaoEmail,
   garantirPerfil,
   lerPerfil,
   observarUsuario,
@@ -42,6 +43,7 @@ interface ValorDaAutenticacao {
   atualizarNome: (nome: string) => Promise<void>;
   atualizarEmail: (novoEmail: string, senhaAtual: string) => Promise<void>;
   atualizarSenha: (senhaAtual: string, novaSenha: string) => Promise<void>;
+  enviarVerificacaoEmail: () => Promise<void>;
 }
 
 const ContextoAutenticacao = createContext<ValorDaAutenticacao | null>(null);
@@ -118,6 +120,9 @@ export function ProvedorDeAutenticacao({ children }: { children: ReactNode }) {
       },
       atualizarSenha: async (senhaAtual, novaSenha) => {
         await atualizarSenhaNoFirebase(senhaAtual, novaSenha);
+      },
+      enviarVerificacaoEmail: async () => {
+        await enviarVerificacaoEmail();
       },
     };
   }, [usuario, perfil, carregando, carregarPerfil]);

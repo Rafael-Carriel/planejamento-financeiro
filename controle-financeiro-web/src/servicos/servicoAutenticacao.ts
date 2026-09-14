@@ -2,6 +2,7 @@ import { FirebaseError } from 'firebase/app';
 import {
   createUserWithEmailAndPassword,
   onAuthStateChanged,
+  sendEmailVerification,
   sendPasswordResetEmail,
   signInWithEmailAndPassword,
   signOut,
@@ -173,6 +174,18 @@ export async function atualizarSenha(
 
   // Atualiza a senha.
   await updatePassword(credencial.user, novaSenha);
+}
+
+/// Envia e-mail de verificação para o usuário atual.
+///
+/// O e-mail de verificação é enviado pelo Firebase Auth. O usuário precisa
+/// clicar no link para verificar o e-mail.
+export async function enviarVerificacaoEmail(): Promise<void> {
+  const usuario = auth.currentUser;
+  if (!usuario) {
+    throw new Error('Nenhum usuário autenticado.');
+  }
+  await sendEmailVerification(usuario);
 }
 
 /// Traduz o erro do Firebase para uma frase que diz o que fazer.

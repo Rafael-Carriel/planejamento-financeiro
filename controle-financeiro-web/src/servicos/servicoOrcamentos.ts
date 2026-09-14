@@ -3,9 +3,9 @@ import {
   doc,
   getDoc,
   onSnapshot,
+  runTransaction,
   serverTimestamp,
   setDoc,
-  updateDoc,
 } from 'firebase/firestore';
 
 import { bancoDeDados } from '../firebase/config';
@@ -76,13 +76,17 @@ export async function lerOrcamento(
 /// Salvar o mapa completo (em vez de um campo `limites.Mercado`) é o que permite
 /// **remover** um limite: `updateDoc` substitui o mapa por inteiro, enquanto uma
 /// escrita com merge só acrescentaria chaves e a categoria apagada voltaria.
+/// Grava o mapa de limites inteiro.
+///
+/// Usa transação para evitar race condition entre abas/janelas.
+/// O mapa completo permite **remover** limites: `setDoc` substitui o mapa
+/// por inteiro, garantindo consistência.
 export async function salvarLimites(
   uid: string,
   chaveDoMes: string,
   limites: Record<string, number>,
 ): Promise<void> {
   const referencia = documentoDeOrcamento(uid, chaveDoMes);
-  const existente = await getDoc(referencia);
 
   const limpos: Record<string, number> = {};
   for (const [categoria, limite] of Object.entries(limites)) {
@@ -91,18 +95,22 @@ export async function salvarLimites(
     }
   }
 
-  if (existente.exists()) {
-    await updateDoc(referencia, {
-      limites: limpos,
-      atualizadoEm: serverTimestamp(),
-    });
-    return;
-  }
+  // Transação garante atomicidade: le + escreve sem interferência de outras abas.
+  await runTransaction(bancoDeDados, async (operacao) => {
+    const existente = await operacao.get(referencia);
 
-  await setDoc(referencia, {
-    mes: chaveDoMes,
-    limites: limpos,
-    criadoEm: serverTimestamp(),
-    atualizadoEm: serverTimestamp(),
+    if (existente.exists()) {
+      operacao.update(referencia, {
+        limites: limpos,
+        atualizadoEm: serverTimestamp(),
+      });
+    } else {
+      operacao.set(referencia, {
+        mes: chaveDoMes,
+        limites: limpos,
+        criadoEm: serverTimestamp(),
+        atualizadoEm: serverTimestamp(),
+      });
+    }
   });
 }
