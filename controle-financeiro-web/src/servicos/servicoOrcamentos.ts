@@ -1,38 +1,17 @@
-import {
-  Timestamp,
-  doc,
-  getDoc,
-  onSnapshot,
-  runTransaction,
-  serverTimestamp,
-  setDoc,
-} from 'firebase/firestore';
-
-import { bancoDeDados } from '../firebase/config';
+import { repositorioOrcamentosFirestore } from '../repositorios/firestore/RepositorioFirestoreOrcamentos';
+import type { IRepositorioOrcamentos } from '../repositorios/interfaces';
 import type { Orcamento } from '../tipos';
 
-/// Planejamento mensal, em `usuarios/{uid}/orcamentos/{aaaa-mm}`.
+/// Serviço do planejamento mensal, em `usuarios/{uid}/orcamentos/{aaaa-mm}`.
 ///
-/// O id do documento é a própria chave do mês, então não há como existirem dois
-/// planejamentos do mesmo mês. Os limites ficam num mapa
-/// `{ 'Mercado': 800, 'Transporte': 300 }` dentro do documento: são poucos por
-/// mês e sempre lidos juntos, então um documento por mês vale mais que uma
-/// subcoleção com uma leitura por categoria.
+/// Delega para um `IRepositorioOrcamentos` injetável (por padrão, o Firestore).
 
-export function documentoDeOrcamento(uid: string, chaveDoMes: string) {
-  return doc(bancoDeDados, 'usuarios', uid, 'orcamentos', chaveDoMes);
-}
+let repositorio: IRepositorioOrcamentos = repositorioOrcamentosFirestore;
 
-function paraLimites(valor: unknown): Record<string, number> {
-  if (typeof valor !== 'object' || valor === null) return {};
-
-  const limites: Record<string, number> = {};
-  for (const [categoria, limite] of Object.entries(valor as Record<string, unknown>)) {
-    if (typeof limite === 'number' && Number.isFinite(limite) && limite > 0) {
-      limites[categoria] = limite;
-    }
-  }
-  return limites;
+/// Troca a implementação usada pelo serviço. Chamado pelo contexto de
+/// repositórios; não é preciso usar em telas.
+export function definirRepositorioOrcamentos(novo: IRepositorioOrcamentos): void {
+  repositorio = novo;
 }
 
 export function observarOrcamento(
@@ -41,76 +20,18 @@ export function observarOrcamento(
   aoReceber: (orcamento: Orcamento) => void,
   aoFalhar: (erro: unknown) => void,
 ): () => void {
-  return onSnapshot(
-    documentoDeOrcamento(uid, chaveDoMes),
-    (documento) => {
-      const dados = documento.data();
-      aoReceber({
-        mes: chaveDoMes,
-        limites: paraLimites(dados?.limites),
-        atualizadoEm:
-          dados?.atualizadoEm instanceof Timestamp ? dados.atualizadoEm.toDate() : null,
-      });
-    },
-    (erro) => aoFalhar(erro),
-  );
+  return repositorio.observar(uid, chaveDoMes, aoReceber, aoFalhar);
 }
 
-export async function lerOrcamento(
-  uid: string,
-  chaveDoMes: string,
-): Promise<Orcamento> {
-  const documento = await getDoc(documentoDeOrcamento(uid, chaveDoMes));
-  const dados = documento.data();
-
-  return {
-    mes: chaveDoMes,
-    limites: paraLimites(dados?.limites),
-    atualizadoEm:
-      dados?.atualizadoEm instanceof Timestamp ? dados.atualizadoEm.toDate() : null,
-  };
+export function lerOrcamento(uid: string, chaveDoMes: string): Promise<Orcamento> {
+  return repositorio.ler(uid, chaveDoMes);
 }
 
-/// Grava o mapa de limites inteiro.
-///
-/// Salvar o mapa completo (em vez de um campo `limites.Mercado`) é o que permite
-/// **remover** um limite: `updateDoc` substitui o mapa por inteiro, enquanto uma
-/// escrita com merge só acrescentaria chaves e a categoria apagada voltaria.
-/// Grava o mapa de limites inteiro.
-///
-/// Usa transação para evitar race condition entre abas/janelas.
-/// O mapa completo permite **remover** limites: `setDoc` substitui o mapa
-/// por inteiro, garantindo consistência.
+/// Grava o mapa de limites inteiro, o que permite remover um limite.
 export async function salvarLimites(
   uid: string,
   chaveDoMes: string,
   limites: Record<string, number>,
 ): Promise<void> {
-  const referencia = documentoDeOrcamento(uid, chaveDoMes);
-
-  const limpos: Record<string, number> = {};
-  for (const [categoria, limite] of Object.entries(limites)) {
-    if (Number.isFinite(limite) && limite > 0) {
-      limpos[categoria] = Math.round(limite * 100) / 100;
-    }
-  }
-
-  // Transação garante atomicidade: le + escreve sem interferência de outras abas.
-  await runTransaction(bancoDeDados, async (operacao) => {
-    const existente = await operacao.get(referencia);
-
-    if (existente.exists()) {
-      operacao.update(referencia, {
-        limites: limpos,
-        atualizadoEm: serverTimestamp(),
-      });
-    } else {
-      operacao.set(referencia, {
-        mes: chaveDoMes,
-        limites: limpos,
-        criadoEm: serverTimestamp(),
-        atualizadoEm: serverTimestamp(),
-      });
-    }
-  });
+  await repositorio.salvar(uid, chaveDoMes, limites);
 }

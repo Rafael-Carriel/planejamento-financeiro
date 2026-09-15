@@ -1,4 +1,19 @@
-import { useEffect, useMemo } from 'react';
+import {
+  DndContext,
+  KeyboardSensor,
+  PointerSensor,
+  closestCenter,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+} from '@dnd-kit/core';
+import {
+  SortableContext,
+  arrayMove,
+  sortableKeyboardCoordinates,
+  verticalListSortingStrategy,
+} from '@dnd-kit/sortable';
+import { useMemo, type ReactNode } from 'react';
 import { Link } from 'react-router-dom';
 
 import { BarrasDeCategoria } from '../componentes/BarrasDeCategoria';
@@ -9,6 +24,13 @@ import { Carregando, EstadoVazio, FaixaDeErro } from '../componentes/Estados';
 import { ListaDeLancamentos } from '../componentes/ListaDeLancamentos';
 import { ListaDePrevistos } from '../componentes/ListaDePrevistos';
 import { ReguaDoMes } from '../componentes/ReguaDoMes';
+import { Widget } from '../componentes/Widget';
+import { DicasFinanceiras } from '../componentes/widgets/DicasFinanceiras';
+import {
+  ProvedorDeLayoutDashboard,
+  WIDGETS_DO_PAINEL,
+  useLayout,
+} from '../contextos/ContextoLayoutDashboard';
 import { useDados } from '../contextos/ContextoDados';
 import { useLancamento } from '../contextos/ContextoLancamento';
 import { useMes } from '../contextos/ContextoMes';
@@ -21,10 +43,35 @@ import { comVariaveis } from '../utilitarios/estilo';
 const QUANTOS_LANCAMENTOS_RECENTES = 5;
 const QUANTOS_PREVISTOS_NO_PAINEL = 5;
 
+function tituloDoWidget(id: string): string {
+  return WIDGETS_DO_PAINEL.find((widget) => widget.id === id)?.titulo ?? id;
+}
+
+/// O Painel personalizável.
+///
+/// O provedor de layout fica aqui dentro, e não no `App`, para a preferência de
+/// tela não vazar para as outras páginas — o Painel é o único que tem widgets.
 export function Painel() {
+  return (
+    <ProvedorDeLayoutDashboard>
+      <ConteudoDoPainel />
+    </ProvedorDeLayoutDashboard>
+  );
+}
+
+function ConteudoDoPainel() {
   const { mes, rotulo, ehMesAtual } = useMes();
   const { transacoes, resumo, carregando, erro, orcamento, previstosDoMes } = useDados();
   const { abrirNovo } = useLancamento();
+  const {
+    ordem,
+    visiveis,
+    editando,
+    definirEditando,
+    reordenar,
+    alternarVisibilidade,
+    restaurarPadrao,
+  } = useLayout();
 
   const saidasPorCategoria = useMemo(() => totaisPorCategoria(transacoes, 'saida'), [transacoes]);
   const entradasPorCategoria = useMemo(
@@ -65,8 +112,10 @@ export function Painel() {
   const entradasTotais = resumo.entradas + aReceber;
   const saidasTotais = resumo.saidas + aPagar;
 
+  const mesVazio = resumo.quantidade === 0 && previstosDoMes.length === 0;
+
   const notaDoSaldo = (() => {
-    if (resumo.quantidade === 0 && previstosDoMes.length === 0) return 'Nenhum lançamento neste mês.';
+    if (mesVazio) return 'Nenhum lançamento neste mês.';
     if (resumo.quantidade === 0) return 'Lançamentos ainda não confirmados este mês.';
     if (resumo.saldo < 0) return `Você gastou ${formatarMoeda(-resumo.saldo)} além do que entrou.`;
     if (fatiaGuardada !== null) {
@@ -75,53 +124,31 @@ export function Painel() {
     return 'Mês só com saídas.';
   })();
 
-  const acoes = (
-    <>
-      <button
-        type="button"
-        className="botao botao-suave"
-        onClick={() => abrirNovo('entrada')}
-      >
-        + Receita
-      </button>
-      <button
-        type="button"
-        className="botao botao-principal"
-        onClick={() => abrirNovo('saida')}
-      >
-        + Despesa
-      </button>
-    </>
+  const sensores = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
   );
 
-  return (
-    <>
-      <CabecalhoDaPagina
-        titulo="Painel"
-        descricao={ehMesAtual ? `${rotulo} · mês em curso` : rotulo}
-        acoes={acoes}
-      />
+  function aoTerminarArraste(evento: DragEndEvent) {
+    const { active, over } = evento;
+    if (!over || active.id === over.id) return;
 
-      <div className="pagina">
-        {erro ? <FaixaDeErro mensagem={erro} /> : null}
+    const de = ordem.indexOf(String(active.id));
+    const para = ordem.indexOf(String(over.id));
+    if (de === -1 || para === -1) return;
 
-        {carregando ? (
-          <Carregando mensagem="Buscando os lançamentos do mês…" />
-        ) : (
+    reordenar(arrayMove(ordem, de, para));
+  }
+
+  /// Em edição aparecem todos os cartões (inclusive os escondidos, para poder
+  /// trazê-los de volta); fora dela, só os que o usuário deixou visíveis.
+  const idsRenderizados = editando ? ordem : ordem.filter((id) => visiveis[id] ?? true);
+
+  function conteudoDoWidget(id: string): ReactNode {
+    switch (id) {
+      case 'resumo':
+        return (
           <>
-            {resumo.quantidade === 0 && previstosDoMes.length === 0 && (
-              <section className="cartao">
-                <div className="cartao-corpo">
-                  <p className="texto-apoio" style={{ margin: 0 }}>
-                    💡 <strong>Bem-vindo ao Painel!</strong> Aqui você vê tudo do mês de uma vez:
-                    o que entrou, o que saiu e o que ainda está previsto. Comece clicando em
-                    <strong> "+ Receita"</strong> ou <strong>"+ Despesa"</strong> para registrar seus primeiros lançamentos.
-                  </p>
-                </div>
-              </section>
-            )}
-
-            {/* HERO: Saldo + Projetado — o mais importante */}
             <div className={`painel-hero${previstosDoMes.length > 0 ? '' : ' painel-hero-solo'}`}>
               <div className={`painel-saldo-card ${resumo.saldo >= 0 ? 'positivo' : 'negativo'}`}>
                 <span className="painel-saldo-rotulo">Saldo do mês</span>
@@ -140,7 +167,6 @@ export function Painel() {
               ) : null}
             </div>
 
-            {/* ENTRADAS / SAÍDAS */}
             <div className="grade-resumo">
               <CartaoResumo
                 rotulo="Entradas"
@@ -179,38 +205,274 @@ export function Painel() {
                 }
               />
             </div>
+          </>
+        );
 
-            {/* PREVISTOS DO MÊS — máx 5 itens */}
-            {previstosVisiveis.length > 0 ? (
-              <section className="cartao">
-                <div className="cartao-cabeca">
-                  <h2>
-                    Previstos do mês
-                    {atrasados.length > 0 ? (
-                      <span className="selo-situacao selo-estourado" style={{ marginLeft: 8 }}>
-                        {atrasados.length === 1
-                          ? '1 venceu'
-                          : `${atrasados.length} venceram`}
+      case 'previstos':
+        if (previstosVisiveis.length === 0) return null;
+        return (
+          <section className="cartao">
+            <div className="cartao-cabeca">
+              <h2>
+                Previstos do mês
+                {atrasados.length > 0 ? (
+                  <span className="selo-situacao selo-estourado" style={{ marginLeft: 8 }}>
+                    {atrasados.length === 1 ? '1 venceu' : `${atrasados.length} venceram`}
+                  </span>
+                ) : null}
+              </h2>
+              {temMaisPrevistos ? (
+                <Link className="botao-texto" to="/previsao">
+                  Ver todos ({previstosDoMes.length})
+                </Link>
+              ) : (
+                <Link className="botao-texto" to="/previsao">
+                  Ver previsão
+                </Link>
+              )}
+            </div>
+            <div className="cartao-corpo-sem-topo">
+              <ListaDePrevistos ocorrencias={previstosVisiveis} comSelecao />
+            </div>
+          </section>
+        );
+
+      case 'movimento':
+        if (mesVazio) return null;
+        return (
+          <section className="cartao">
+            <div className="cartao-cabeca">
+              <h2>Movimento do mês</h2>
+              <span className="texto-miudo">dia a dia</span>
+            </div>
+            <div className="cartao-corpo">
+              <ReguaDoMes transacoes={transacoes} mes={mes} />
+            </div>
+          </section>
+        );
+
+      case 'grafico-despesas':
+        if (mesVazio) return null;
+        return (
+          <section className="cartao">
+            <div className="cartao-cabeca">
+              <h2>Para onde foi</h2>
+              <Link className="botao-texto" to="/despesas">
+                Ver despesas
+              </Link>
+            </div>
+            <div className="cartao-corpo">
+              <BarrasDeCategoria
+                totais={saidasPorCategoria}
+                cor="saida"
+                quantidadeMaxima={6}
+                tituloVazio="Nenhuma despesa neste mês"
+                descricaoVazia="Quando houver saídas, elas aparecem aqui agrupadas por categoria."
+              />
+            </div>
+          </section>
+        );
+
+      case 'grafico-receitas':
+        if (mesVazio) return null;
+        return (
+          <section className="cartao">
+            <div className="cartao-cabeca">
+              <h2>De onde veio</h2>
+              <Link className="botao-texto" to="/receitas">
+                Ver receitas
+              </Link>
+            </div>
+            <div className="cartao-corpo">
+              <BarrasDeCategoria
+                totais={entradasPorCategoria}
+                cor="entrada"
+                quantidadeMaxima={5}
+                tituloVazio="Nenhuma receita neste mês"
+                descricaoVazia="Lance o salário, um freelance ou qualquer entrada para ver a divisão."
+              />
+            </div>
+          </section>
+        );
+
+      case 'limites':
+        if (mesVazio || atencao.length === 0) return null;
+        return (
+          <section className="cartao">
+            <div className="cartao-cabeca">
+              <h2>Limites apertando</h2>
+              <Link className="botao-texto" to="/planejamento">
+                Ajustar planejamento
+              </Link>
+            </div>
+            <div className="cartao-corpo">
+              <div className="linhas-categoria">
+                {atencao.slice(0, 4).map((linha) => {
+                  const situacao = situacaoDoLimite(linha);
+                  const largura = Math.min(100, linha.proporcao * 100);
+
+                  return (
+                    <div className="linha-categoria" key={linha.categoria}>
+                      <div className="linha-categoria-topo">
+                        <span className="linha-categoria-nome">
+                          <span>{linha.categoria}</span>
+                          <span className={situacao.classeDoSelo}>{situacao.rotulo}</span>
+                        </span>
+                        <span className="linha-categoria-valores">
+                          <span className="texto-miudo">{formatarPorcentagem(linha.proporcao)}</span>
+                          <Dinheiro valor={linha.gasto} cor="saida" />
+                        </span>
+                      </div>
+
+                      <div className={`trilha ${situacao.classeDaTrilha}`}>
+                        <div
+                          className="trilha-preenchida"
+                          style={{
+                            ...comVariaveis({ '--cor-barra': 'var(--saida)' }),
+                            width: `${largura}%`,
+                          }}
+                        />
+                      </div>
+
+                      <span className="texto-miudo">
+                        {linha.restante >= 0
+                          ? `Ainda cabem ${formatarMoeda(linha.restante)} do limite de ${formatarMoeda(linha.limite)}.`
+                          : `Passou ${formatarMoeda(-linha.restante)} do limite de ${formatarMoeda(linha.limite)}.`}
                       </span>
-                    ) : null}
-                  </h2>
-                  {temMaisPrevistos ? (
-                    <Link className="botao-texto" to="/previsao">
-                      Ver todos ({previstosDoMes.length})
-                    </Link>
-                  ) : (
-                    <Link className="botao-texto" to="/previsao">
-                      Ver previsão
-                    </Link>
-                  )}
-                </div>
-                <div className="cartao-corpo-sem-topo">
-                  <ListaDePrevistos ocorrencias={previstosVisiveis} comSelecao />
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          </section>
+        );
+
+      case 'lancamentos':
+        if (mesVazio) return null;
+        return (
+          <section className="cartao">
+            <div className="cartao-cabeca">
+              <h2>Últimos lançamentos</h2>
+              <span className="texto-miudo">
+                {resumo.quantidade > QUANTOS_LANCAMENTOS_RECENTES
+                  ? `${QUANTOS_LANCAMENTOS_RECENTES} de ${resumo.quantidade}`
+                  : `${resumo.quantidade} no mês`}
+              </span>
+            </div>
+            <div className="cartao-corpo-sem-topo">
+              <ListaDeLancamentos transacoes={recentes} />
+            </div>
+          </section>
+        );
+
+      case 'dicas':
+        return <DicasFinanceiras />;
+
+      default:
+        return null;
+    }
+  }
+
+  const acoes = (
+    <>
+      {editando ? null : (
+        <>
+          <button type="button" className="botao botao-suave" onClick={() => abrirNovo('entrada')}>
+            + Receita
+          </button>
+          <button type="button" className="botao botao-principal" onClick={() => abrirNovo('saida')}>
+            + Despesa
+          </button>
+        </>
+      )}
+      <button
+        type="button"
+        className={editando ? 'botao botao-principal' : 'botao botao-contorno'}
+        onClick={() => definirEditando(!editando)}
+        aria-pressed={editando}
+      >
+        {editando ? '✓ Concluir' : '⚙ Personalizar'}
+      </button>
+      {editando ? (
+        <button type="button" className="botao botao-contorno" onClick={restaurarPadrao}>
+          Restaurar padrão
+        </button>
+      ) : null}
+    </>
+  );
+
+  return (
+    <>
+      <CabecalhoDaPagina
+        titulo="Painel"
+        descricao={ehMesAtual ? `${rotulo} · mês em curso` : rotulo}
+        acoes={acoes}
+      />
+
+      <div className="pagina">
+        {erro ? <FaixaDeErro mensagem={erro} /> : null}
+
+        {carregando ? (
+          <Carregando mensagem="Buscando os lançamentos do mês…" />
+        ) : (
+          <>
+            {mesVazio ? (
+              <section className="cartao">
+                <div className="cartao-corpo">
+                  <p className="texto-apoio" style={{ margin: 0 }}>
+                    💡 <strong>Bem-vindo ao Painel!</strong> Aqui você vê tudo do mês de uma vez:
+                    o que entrou, o que saiu e o que ainda está previsto. Comece clicando em
+                    <strong> "+ Receita"</strong> ou <strong>"+ Despesa"</strong> para registrar
+                    seus primeiros lançamentos.
+                  </p>
                 </div>
               </section>
             ) : null}
 
-            {resumo.quantidade === 0 && previstosDoMes.length === 0 ? (
+            {editando ? (
+              <div className="aviso aviso-edicao-painel">
+                <span aria-hidden="true">🛠️</span>
+                <span>
+                  Modo de personalização: arraste os cartões pela alça para reordenar e use o olho
+                  para mostrar ou ocultar. As mudanças ficam salvas neste navegador.
+                </span>
+              </div>
+            ) : null}
+
+            <DndContext
+              sensors={sensores}
+              collisionDetection={closestCenter}
+              onDragEnd={aoTerminarArraste}
+            >
+              <SortableContext items={idsRenderizados} strategy={verticalListSortingStrategy}>
+                {idsRenderizados.map((id) => {
+                  const conteudo = conteudoDoWidget(id);
+                  return (
+                    <Widget
+                      key={id}
+                      id={id}
+                      titulo={tituloDoWidget(id)}
+                      editando={editando}
+                      visivel={visiveis[id] ?? true}
+                      aoAlternarVisibilidade={() => alternarVisibilidade(id)}
+                    >
+                      {conteudo ??
+                        (editando ? (
+                          <section className="cartao">
+                            <div className="cartao-corpo">
+                              <p className="texto-apoio" style={{ margin: 0 }}>
+                                Sem dados para este cartão agora.
+                              </p>
+                            </div>
+                          </section>
+                        ) : null)}
+                    </Widget>
+                  );
+                })}
+              </SortableContext>
+            </DndContext>
+
+            {mesVazio ? (
               <div className="cartao">
                 <div className="cartao-corpo">
                   <EstadoVazio
@@ -238,123 +500,7 @@ export function Painel() {
                   />
                 </div>
               </div>
-            ) : (
-              <>
-                <section className="cartao">
-                  <div className="cartao-cabeca">
-                    <h2>Movimento do mês</h2>
-                    <span className="texto-miudo">dia a dia</span>
-                  </div>
-                  <div className="cartao-corpo">
-                    <ReguaDoMes transacoes={transacoes} mes={mes} />
-                  </div>
-                </section>
-
-                <div className="grade-dupla grade-dupla-desigual">
-                  <section className="cartao">
-                    <div className="cartao-cabeca">
-                      <h2>Para onde foi</h2>
-                      <Link className="botao-texto" to="/despesas">
-                        Ver despesas
-                      </Link>
-                    </div>
-                    <div className="cartao-corpo">
-                      <BarrasDeCategoria
-                        totais={saidasPorCategoria}
-                        cor="saida"
-                        quantidadeMaxima={6}
-                        tituloVazio="Nenhuma despesa neste mês"
-                        descricaoVazia="Quando houver saídas, elas aparecem aqui agrupadas por categoria."
-                      />
-                    </div>
-                  </section>
-
-                  <section className="cartao">
-                    <div className="cartao-cabeca">
-                      <h2>De onde veio</h2>
-                      <Link className="botao-texto" to="/receitas">
-                        Ver receitas
-                      </Link>
-                    </div>
-                    <div className="cartao-corpo">
-                      <BarrasDeCategoria
-                        totais={entradasPorCategoria}
-                        cor="entrada"
-                        quantidadeMaxima={5}
-                        tituloVazio="Nenhuma receita neste mês"
-                        descricaoVazia="Lance o salário, um freelance ou qualquer entrada para ver a divisão."
-                      />
-                    </div>
-                  </section>
-                </div>
-
-                {atencao.length > 0 ? (
-                  <section className="cartao">
-                    <div className="cartao-cabeca">
-                      <h2>Limites apertando</h2>
-                      <Link className="botao-texto" to="/planejamento">
-                        Ajustar planejamento
-                      </Link>
-                    </div>
-                    <div className="cartao-corpo">
-                      <div className="linhas-categoria">
-                        {atencao.slice(0, 4).map((linha) => {
-                          const situacao = situacaoDoLimite(linha);
-                          const largura = Math.min(100, linha.proporcao * 100);
-
-                          return (
-                            <div className="linha-categoria" key={linha.categoria}>
-                              <div className="linha-categoria-topo">
-                                <span className="linha-categoria-nome">
-                                  <span>{linha.categoria}</span>
-                                  <span className={situacao.classeDoSelo}>{situacao.rotulo}</span>
-                                </span>
-                                <span className="linha-categoria-valores">
-                                  <span className="texto-miudo">
-                                    {formatarPorcentagem(linha.proporcao)}
-                                  </span>
-                                  <Dinheiro valor={linha.gasto} cor="saida" />
-                                </span>
-                              </div>
-
-                              <div className={`trilha ${situacao.classeDaTrilha}`}>
-                                <div
-                                  className="trilha-preenchida"
-                                  style={{
-                                    ...comVariaveis({ '--cor-barra': 'var(--saida)' }),
-                                    width: `${largura}%`,
-                                  }}
-                                />
-                              </div>
-
-                              <span className="texto-miudo">
-                                {linha.restante >= 0
-                                  ? `Ainda cabem ${formatarMoeda(linha.restante)} do limite de ${formatarMoeda(linha.limite)}.`
-                                  : `Passou ${formatarMoeda(-linha.restante)} do limite de ${formatarMoeda(linha.limite)}.`}
-                              </span>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    </div>
-                  </section>
-                ) : null}
-
-                <section className="cartao">
-                  <div className="cartao-cabeca">
-                    <h2>Últimos lançamentos</h2>
-                    <span className="texto-miudo">
-                      {resumo.quantidade > QUANTOS_LANCAMENTOS_RECENTES
-                        ? `${QUANTOS_LANCAMENTOS_RECENTES} de ${resumo.quantidade}`
-                        : `${resumo.quantidade} no mês`}
-                    </span>
-                  </div>
-                  <div className="cartao-corpo-sem-topo">
-                    <ListaDeLancamentos transacoes={recentes} />
-                  </div>
-                </section>
-              </>
-            )}
+            ) : null}
           </>
         )}
       </div>

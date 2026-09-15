@@ -1,52 +1,21 @@
-import {
-  addDoc,
-  collection,
-  deleteDoc,
-  doc,
-  onSnapshot,
-  orderBy,
-  query,
-  serverTimestamp,
-  updateDoc,
-  type DocumentData,
-  type QueryDocumentSnapshot,
-} from 'firebase/firestore';
+import { repositorioCategoriasFirestore } from '../repositorios/firestore/RepositorioFirestoreCategorias';
+import type { DadosDeCategoria, IRepositorioCategorias } from '../repositorios/interfaces';
+import type { Categoria } from '../tipos';
 
-import { bancoDeDados } from '../firebase/config';
-import { corDerivadaDoNome } from '../dados/catalogoCategorias';
-import type { Categoria, TipoTransacao } from '../tipos';
-
-/// Categorias criadas pelo usuário, em `usuarios/{uid}/categorias`.
+/// Serviço das categorias criadas pelo usuário, em `usuarios/{uid}/categorias`.
 ///
-/// Somam-se ao catálogo básico que vive no código. A ordenação é por `nome`,
-/// um campo só, então o índice automático do Firestore já dá conta.
+/// Delega para um `IRepositorioCategorias` injetável (por padrão, o Firestore).
+/// As somas ao catálogo básico que vive no código continuam sendo feitas na
+/// camada de contexto, não aqui.
 
-export interface DadosDeCategoria {
-  nome: string;
-  tipo: TipoTransacao;
-  emoji: string;
-  cor: string;
-}
+export type { DadosDeCategoria } from '../repositorios/interfaces';
 
-export function colecaoDeCategorias(uid: string) {
-  return collection(bancoDeDados, 'usuarios', uid, 'categorias');
-}
+let repositorio: IRepositorioCategorias = repositorioCategoriasFirestore;
 
-function paraCategoria(documento: QueryDocumentSnapshot<DocumentData>): Categoria {
-  const dados = documento.data();
-  const nome = typeof dados.nome === 'string' ? dados.nome.trim() : '';
-
-  return {
-    id: documento.id,
-    nome: nome.length > 0 ? nome : 'Sem nome',
-    tipo: dados.tipo === 'entrada' ? 'entrada' : 'saida',
-    emoji: typeof dados.emoji === 'string' && dados.emoji.length > 0 ? dados.emoji : '🏷️',
-    cor:
-      typeof dados.cor === 'string' && dados.cor.length > 0
-        ? dados.cor
-        : corDerivadaDoNome(nome),
-    personalizada: true,
-  };
+/// Troca a implementação usada pelo serviço. Chamado pelo contexto de
+/// repositórios; não é preciso usar em telas.
+export function definirRepositorioCategorias(novo: IRepositorioCategorias): void {
+  repositorio = novo;
 }
 
 export function observarCategorias(
@@ -54,25 +23,14 @@ export function observarCategorias(
   aoReceber: (categorias: Categoria[]) => void,
   aoFalhar: (erro: unknown) => void,
 ): () => void {
-  return onSnapshot(
-    query(colecaoDeCategorias(uid), orderBy('nome')),
-    (resultado) => aoReceber(resultado.docs.map(paraCategoria)),
-    (erro) => aoFalhar(erro),
-  );
+  return repositorio.observar(uid, aoReceber, aoFalhar);
 }
 
 export async function criarCategoria(
   uid: string,
   dados: DadosDeCategoria,
 ): Promise<void> {
-  await addDoc(colecaoDeCategorias(uid), {
-    nome: dados.nome.trim(),
-    tipo: dados.tipo,
-    emoji: dados.emoji,
-    cor: dados.cor,
-    criadoEm: serverTimestamp(),
-    atualizadoEm: serverTimestamp(),
-  });
+  await repositorio.criar(uid, dados);
 }
 
 /// Atualiza a categoria.
@@ -85,13 +43,9 @@ export async function atualizarCategoria(
   id: string,
   dados: Pick<DadosDeCategoria, 'emoji' | 'cor'>,
 ): Promise<void> {
-  await updateDoc(doc(bancoDeDados, 'usuarios', uid, 'categorias', id), {
-    emoji: dados.emoji,
-    cor: dados.cor,
-    atualizadoEm: serverTimestamp(),
-  });
+  await repositorio.atualizar(uid, id, dados);
 }
 
 export async function excluirCategoria(uid: string, id: string): Promise<void> {
-  await deleteDoc(doc(bancoDeDados, 'usuarios', uid, 'categorias', id));
+  await repositorio.excluir(uid, id);
 }
