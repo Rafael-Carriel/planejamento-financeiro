@@ -4,6 +4,7 @@ import { Layout } from './componentes/Layout';
 import { Carregando } from './componentes/Estados';
 import { ProvedorDeAutenticacao, useAutenticacao } from './contextos/ContextoAutenticacao';
 import { ProvedorDeDados } from './contextos/ContextoDados';
+import { ProvedorDeRepositorios } from './contextos/ContextoRepositorios';
 import { ProvedorDeLancamento } from './contextos/ContextoLancamento';
 import { ProvedorDeMes } from './contextos/ContextoMes';
 import { Categorias } from './paginas/Categorias';
@@ -11,6 +12,7 @@ import { Despesas } from './paginas/Despesas';
 import { Dividas } from './paginas/Dividas';
 import { Entrada } from './paginas/Entrada';
 import { Historico } from './paginas/Historico';
+import { Lembretes } from './paginas/Lembretes';
 import { Objetivos } from './paginas/Objetivos';
 import { Painel } from './paginas/Painel';
 import { Planejamento } from './paginas/Planejamento';
@@ -48,6 +50,7 @@ function Portao() {
             <Route path="dividas" element={<Dividas />} />
             <Route path="planejamento" element={<Planejamento />} />
             <Route path="historico" element={<Historico />} />
+            <Route path="lembretes" element={<Lembretes />} />
             <Route path="relatorios" element={<Relatorios />} />
             <Route path="reserva-emergencia" element={<ReservaEmergencia />} />
             <Route path="objetivos" element={<Objetivos />} />
@@ -64,7 +67,9 @@ export default function App() {
     <HashRouter>
       <ProvedorDeAutenticacao>
         <ProvedorDeMes>
-          <Portao />
+          <ProvedorDeRepositorios>
+            <Portao />
+          </ProvedorDeRepositorios>
         </ProvedorDeMes>
       </ProvedorDeAutenticacao>
     </HashRouter>

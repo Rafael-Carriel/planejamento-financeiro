@@ -44,6 +44,14 @@ service cloud.firestore {
         allow create, update: if ehDono(uid) && dividaValida();
       }
 
+      // Avisos pontuais para o usuário: conta que venceu, dívida atrasada,
+      // orçamento estourado. Não gera lançamento — é só uma fila de avisos,
+      // consumida ao marcar como lido ou excluir.
+      match /lembretes/{lembreteId} {
+        allow read, delete: if ehDono(uid);
+        allow create, update: if ehDono(uid) && lembreteValida();
+      }
+
       match /reservaEmergencia/{docId} {
         allow read, delete: if ehDono(uid);
         allow create, update: if ehDono(uid) && reservaValida();
@@ -53,6 +61,18 @@ service cloud.firestore {
       match /movimentacoesReserva/{movimentacaoId} {
         allow read, delete: if ehDono(uid);
         allow create, update: if ehDono(uid) && movimentacaoReservaValida();
+      }
+
+      // Objetivos de poupança: cofrinhos com nome, emoji, alvo e valor guardado.
+      // O histórico de aportes e resgates fica na subcoleção objetivos/{id}/movimentacoes.
+      match /objetivos/{objetivoId} {
+        allow read, delete: if ehDono(uid);
+        allow create, update: if ehDono(uid) && objetivoValido();
+      }
+
+      match /objetivos/{objetivoId}/movimentacoes/{movimentacaoId} {
+        allow read, delete: if ehDono(uid);
+        allow create, update: if ehDono(uid) && movimentacaoObjetivoValida();
       }
     }
 
@@ -218,6 +238,25 @@ service cloud.firestore {
         );
     }
 
+    // Lembrete: aviso pontual (conta, dívida, orçamento, sistema). `lido`
+    // alimenta o contador do sino na barra superior do app web.
+    function lembreteValida() {
+      let dados = request.resource.data;
+      return dados.keys().hasOnly([
+            'titulo', 'descricao', 'tipo', 'data', 'lido', 'criadoEm', 'atualizadoEm',
+          ])
+        && dados.titulo is string
+        && dados.titulo.size() > 0
+        && dados.titulo.size() <= 120
+        && (
+          dados.descricao == null
+          || (dados.descricao is string && dados.descricao.size() <= 500)
+        )
+        && dados.tipo in ['recorrencia', 'divida', 'orcamento', 'sistema']
+        && dados.data is timestamp
+        && dados.lido is bool;
+    }
+
     // Reserva de emergência: documento único com meta e valor atual.
     function reservaValida() {
       let dados = request.resource.data;
@@ -243,6 +282,45 @@ service cloud.firestore {
         && dados.descricao.size() <= 100
         && dados.data is timestamp
         && dados.criadoEm is timestamp;
+    }
+
+    // Objetivo de poupança: cofrinho com nome, emoji, alvo e valor guardado.
+    function objetivoValido() {
+      let dados = request.resource.data;
+      return dados.keys().hasOnly([
+            'nome', 'emoji', 'valorAlvo', 'valorGuardado',
+            'prazo', 'criadoEm', 'atualizadoEm',
+          ])
+        && dados.nome is string
+        && dados.nome.size() > 0
+        && dados.nome.size() <= 60
+        && dados.emoji is string
+        && dados.emoji.size() > 0
+        && dados.emoji.size() <= 16
+        && dados.valorAlvo is number
+        && dados.valorAlvo > 0
+        && dados.valorAlvo <= 100000000
+        && dados.valorGuardado is number
+        && dados.valorGuardado >= 0
+        && dados.valorGuardado <= 100000000
+        && (
+          dados.prazo == null
+          || dados.prazo is timestamp
+        );
+    }
+
+    // Movimentação do objetivo: aporte ou resgate com descrição.
+    function movimentacaoObjetivoValida() {
+      let dados = request.resource.data;
+      return dados.keys().hasOnly(['tipo', 'valor', 'descricao', 'data'])
+        && dados.tipo in ['entrada', 'saida']
+        && dados.valor is number
+        && dados.valor > 0
+        && dados.valor <= 100000000
+        && dados.descricao is string
+        && dados.descricao.size() > 0
+        && dados.descricao.size() <= 100
+        && dados.data is timestamp;
     }
   }
 }

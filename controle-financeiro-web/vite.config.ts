@@ -40,6 +40,11 @@ export default defineConfig({
         ],
       },
       workbox: {
+        // Notificações push (FCM): este sw.js controla o escopo '/' em
+        // produção, então é ele quem precisa saber mostrar a notificação com
+        // o app fechado — o firebase-messaging-sw.js detecta sozinho se já foi
+        // configurado e não faz nada enquanto o firebaseConfig estiver vazio.
+        importScripts: ['./firebase-messaging-sw.js'],
         globPatterns: ['**/*.{ico,png,svg,woff2}'],
         navigateFallback: 'index.html',
         navigateFallbackDenylist: [/^\/api/],
