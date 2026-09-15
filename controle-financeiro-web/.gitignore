@@ -18,3 +18,9 @@ npm-debug.log*
 .idea/
 .DS_Store
 Thumbs.db
+
+# Testes ponta a ponta (Playwright).
+playwright-report/
+blob-report/
+test-results/
+playwright/.cache/

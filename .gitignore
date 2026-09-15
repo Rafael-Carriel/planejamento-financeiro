@@ -13,6 +13,9 @@ build/
 .env
 .env.*
 !.env.example
+# `.env.test` guarda apenas valores fictícios (os testes E2E substituem o
+# Firebase por dublês em memória) e precisa existir no CI.
+!.env.test
 
 # Arquivos gerados pelo flutterfire/firebase na máquina de quem programa
 lib/firebase_options.dart
