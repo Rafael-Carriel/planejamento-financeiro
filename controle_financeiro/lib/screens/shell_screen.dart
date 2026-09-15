@@ -7,6 +7,7 @@ import 'package:provider/provider.dart';
 import '../services/notificacoes_service.dart';
 import '../state/estado_transacoes.dart';
 import '../state/mes_selecionado.dart';
+import '../widgets/offline_banner.dart';
 import '../widgets/seletor_mes.dart';
 import 'dashboard/dashboard_screen.dart';
 import 'perfil/perfil_screen.dart';
@@ -103,20 +104,29 @@ class _ShellScreenState extends State<ShellScreen> {
             title: Text(_titulos[_aba]),
             bottom: _aba == 3 ? null : const SeletorMes(),
           ),
-          body: IndexedStack(
-            index: _aba,
+          body: Column(
             children: <Widget>[
-              DashboardScreen(
-                uid: widget.uid,
-                nome: widget.nome,
-                onVerTodos: () => setState(() => _aba = 1),
-              ),
-              TransacoesScreen(uid: widget.uid),
-              const RelatoriosScreen(),
-              PerfilScreen(
-                uid: widget.uid,
-                nome: widget.nome,
-                email: widget.email,
+              // Faixa âmbar que aparece quando a internet cai e some quando
+              // a conexão volta.
+              const OfflineBanner(),
+              Expanded(
+                child: IndexedStack(
+                  index: _aba,
+                  children: <Widget>[
+                    DashboardScreen(
+                      uid: widget.uid,
+                      nome: widget.nome,
+                      onVerTodos: () => setState(() => _aba = 1),
+                    ),
+                    TransacoesScreen(uid: widget.uid),
+                    const RelatoriosScreen(),
+                    PerfilScreen(
+                      uid: widget.uid,
+                      nome: widget.nome,
+                      email: widget.email,
+                    ),
+                  ],
+                ),
               ),
             ],
           ),

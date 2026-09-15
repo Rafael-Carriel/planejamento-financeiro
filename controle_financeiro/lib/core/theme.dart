@@ -1,12 +1,14 @@
 import 'package:flutter/material.dart';
 
-/// Cores semânticas do app - entradas em verde, saídas em vermelho.
+/// Cores semânticas do app - entradas em verde, saídas em vermelho, avisos em âmbar.
 abstract final class AppCores {
   static const Color entrada = Color(0xFF1B8A5A);
   static const Color entradaSuave = Color(0xFFE3F5EC);
   static const Color saida = Color(0xFFC0392B);
   static const Color saidaSuave = Color(0xFFFCE9E7);
   static const Color semente = Color(0xFF0F6E63);
+  static const Color aviso = Color(0xFF8A6100);
+  static const Color avisoSuave = Color(0xFFFFF4CE);
 }
 
 ThemeData construirTema() {

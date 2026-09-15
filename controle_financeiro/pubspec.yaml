@@ -26,6 +26,10 @@ dependencies:
 
   # Estado e formatação
   provider: ^6.1.2
+  # Riverpod entra em paralelo ao Provider durante a migração incremental;
+  # os dois convivem até que todas as telas sejam migradas.
+  flutter_riverpod: ^2.6.1
+  riverpod: ^2.6.1
   # Sem versão fixa de propósito: quem define a versão do intl é o
   # flutter_localizations, que vem junto com o seu Flutter SDK.
   intl: any

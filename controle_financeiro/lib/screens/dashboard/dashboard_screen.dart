@@ -1,16 +1,18 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:provider/provider.dart';
 
 import '../../models/resumo_financeiro.dart';
 import '../../models/transacao.dart';
-import '../../state/estado_transacoes.dart';
+import '../../providers/transacoes_provider.dart';
+import '../../state/mes_selecionado.dart';
 import '../../widgets/cartao_resumo.dart';
 import '../../widgets/estado_vazio.dart';
 import '../../widgets/item_transacao.dart';
 import '../transacoes/form_transacao_screen.dart';
 
 /// Visão geral do mês: saldo, totais e os últimos lançamentos.
-class DashboardScreen extends StatelessWidget {
+class DashboardScreen extends ConsumerWidget {
   const DashboardScreen({
     required this.uid,
     required this.nome,
@@ -23,8 +25,13 @@ class DashboardScreen extends StatelessWidget {
   final VoidCallback onVerTodos;
 
   @override
-  Widget build(BuildContext context) {
-    final estado = context.watch<EstadoTransacoes>();
+  Widget build(BuildContext context, WidgetRef ref) {
+    // O mês continua vindo do Provider compartilhado (as outras abas ainda o
+    // usam); só os dados agora vêm do Riverpod. Assim a troca de mês feita no
+    // seletor continua refletindo aqui e nas telas não migradas.
+    final mes = context.watch<MesSelecionado>().mes;
+    final chave = (uid: uid, mes: mes);
+    final estado = ref.watch(estadoTransacoesDoMesProvider(chave));
 
     if (estado.carregando) {
       return const Center(child: CircularProgressIndicator());
