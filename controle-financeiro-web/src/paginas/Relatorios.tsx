@@ -3,12 +3,14 @@ import { useEffect, useMemo, useState } from 'react';
 import { CabecalhoDaPagina } from '../componentes/CabecalhoDaPagina';
 import { CartaoResumo } from '../componentes/CartaoResumo';
 import { Dinheiro } from '../componentes/Dinheiro';
+import { Comparativo } from '../componentes/Comparativo';
 import { Carregando, EstadoVazio, FaixaDeErro } from '../componentes/Estados';
 import { useAutenticacao } from '../contextos/ContextoAutenticacao';
 import { useDados } from '../contextos/ContextoDados';
 import { useMes } from '../contextos/ContextoMes';
 import { resumosPorMes, totaisPorCategoria } from '../dominio/calculos';
 import { mensagemDeErro } from '../servicos/servicoAutenticacao';
+import { exportarPdf } from '../servicos/servicoExportacao';
 import { lerTransacoes } from '../servicos/servicoTransacoes';
 import type { ResumoDeMes, Transacao } from '../tipos';
 import {
@@ -299,20 +301,30 @@ export function Relatorios() {
         titulo="Relatórios"
         descricao={`Análise dos últimos ${quantidade} meses`}
         acoes={
-          <select
-            className="selecao"
-            value={String(quantidade)}
-            onChange={(evento) =>
-              definirQuantidade(Number.parseInt(evento.target.value, 10) as Periodo)
-            }
-            aria-label="Período"
-          >
-            {PERIODOS.map((opcao) => (
-              <option key={opcao} value={String(opcao)}>
-                {opcao} meses
-              </option>
-            ))}
-          </select>
+          <>
+            <select
+              className="selecao"
+              value={String(quantidade)}
+              onChange={(evento) =>
+                definirQuantidade(Number.parseInt(evento.target.value, 10) as Periodo)
+              }
+              aria-label="Período"
+            >
+              {PERIODOS.map((opcao) => (
+                <option key={opcao} value={String(opcao)}>
+                  {opcao} meses
+                </option>
+              ))}
+            </select>
+            <button
+              type="button"
+              className="botao botao-contorno"
+              onClick={() => void exportarPdf(transacoes, 'Relatório Financeiro')}
+              disabled={carregando || transacoes.length === 0}
+            >
+              Exportar PDF
+            </button>
+          </>
         }
       />
 
@@ -410,6 +422,9 @@ export function Relatorios() {
                 </div>
               </section>
             )}
+
+            {/* ─── COMPARATIVO MENSAL ───────────────────────────────── */}
+            {resumos.length > 0 && <Comparativo resumos={resumos} />}
 
             {/* ─── GASTO FIXO vs VARIÁVEL ────────────────────────────── */}
             {analiseFixoVariavel && (

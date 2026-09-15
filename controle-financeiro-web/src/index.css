@@ -96,6 +96,61 @@
 }
 
 /* --------------------------------------------------------------------------
+   Tema Escuro
+   Ativado pelo atributo data-theme="dark" no <html>, alternado pelo botão
+   do rodapé da barra lateral e pelo chip da tira superior do celular. A
+   escolha do usuário fica no localStorage (chave "theme"); sem escolha
+   salva, vale a preferência do sistema (prefers-color-scheme). Só o papel
+   e a tinta mudam — os acentos são os mesmos do tema claro.
+   -------------------------------------------------------------------------- */
+
+[data-theme='dark'] {
+  color-scheme: dark;
+
+  /* === Cores Base === */
+  --papel: #0f172a;
+  --papel-profundo: #1e293b;
+  --cartao: #1e293b;
+  --borda: #334155;
+  --borda-forte: #475569;
+
+  /* === Texto === */
+  --tinta: #f1f5f9;
+  --tinta-media: #94a3b8;
+  --tinta-fraca: #64748b;
+}
+
+/* Superfícies que usavam cor clara fixa no tema claro recebem o equivalente
+   escuro, para não "acender" a interface quando o tema muda. */
+
+/* Cabeçalho das páginas: o fundo translúcido era azul-quase-branco. */
+[data-theme='dark'] .cabecalho {
+  background: rgba(15, 23, 42, 0.8);
+}
+
+/* Tira superior do celular: o fundo era a tinta, que no escuro é clara. */
+[data-theme='dark'] .tira-conta {
+  background: var(--papel);
+}
+
+/* Abas de login e do perfil: o contêiner escurece mais que o cartão para
+   o chip ativo continuar destacado. */
+[data-theme='dark'] .entrada-abas,
+[data-theme='dark'] .abas-perfil {
+  background: var(--papel);
+}
+
+[data-theme='dark'] .abas-perfil .aba:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+/* Esqueleto de carregamento: o gradiente era quase branco. */
+[data-theme='dark'] .esqueleto {
+  background: linear-gradient(90deg, #1e293b, #334155, #1e293b);
+  background-size: 200% 100%;
+}
+
+/* --------------------------------------------------------------------------
    Reset e Base
    -------------------------------------------------------------------------- */
 
@@ -326,6 +381,17 @@ button {
   box-shadow: none;
 }
 
+/* Excluir em texto: o mesmo "botao-texto", mas na cor de saída — usado para
+   ações destrutivas leves, como descartar um lembrete. */
+.acao-excluir-lembrete {
+  color: var(--saida);
+}
+
+.acao-excluir-lembrete:hover {
+  color: var(--saida);
+  background: var(--saida-clara);
+}
+
 .botao-icone {
   display: inline-flex;
   align-items: center;
@@ -347,6 +413,70 @@ button {
   color: var(--tinta);
   box-shadow: 0 2px 8px rgba(15, 23, 42, 0.08);
   transform: translateY(-1px);
+}
+
+/* Alternância de tema (claro/escuro): botão largo no rodapé da barra
+   lateral (computador) e chip redondo na tira superior (celular). */
+.botao-tema {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  border: none;
+  background: rgba(255, 255, 255, 0.06);
+  color: #94a3b8;
+  border-radius: var(--raio-pequeno);
+  padding: 9px 12px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  text-align: left;
+  transition: all 0.2s ease;
+}
+
+.botao-tema:hover {
+  background: rgba(255, 255, 255, 0.12);
+  color: #fff;
+}
+
+.tira-conta-acoes {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* Na tira do celular o botão vira um chip redondo do tamanho do avatar. */
+.tira-conta .botao-tema {
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  padding: 0;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
+  font-size: 0.95rem;
+  line-height: 1;
+}
+
+/* Sino de lembretes da tira superior do celular: mesmo chip redondo do botão
+   de tema, com o contador de não lidos sobreposto no canto. */
+.tira-conta .botao-lembrete {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
+  font-size: 0.95rem;
+  line-height: 1;
+  transition: all 0.2s ease;
+}
+
+.tira-conta .botao-lembrete:hover {
+  background: rgba(255, 255, 255, 0.2);
 }
 
 /* --------------------------------------------------------------------------
@@ -1368,6 +1498,21 @@ button {
   color: var(--tinta-fraca);
 }
 
+/* Contador do sino de lembretes: selo de alerta reduzido e posicionado no
+   canto do botão. Deve vir depois de ".selo-situacao" para sobrepor o
+   espaçamento original. */
+.selo-contador {
+  position: absolute;
+  top: -5px;
+  right: -7px;
+  min-width: 17px;
+  height: 17px;
+  padding: 0 5px;
+  justify-content: center;
+  font-size: 0.62rem;
+  pointer-events: none;
+}
+
 /* Planejamento: linha com campo de limite */
 .linha-planejamento {
   display: grid;
@@ -1463,6 +1608,15 @@ button {
 .coluna-mes-atual .coluna-rotulo {
   color: var(--destaque);
   font-weight: 700;
+}
+
+/* --------------------------------------------------------------------------
+   Gráfico Comparativo Mensal (recharts)
+   -------------------------------------------------------------------------- */
+
+.comparativo-grafico {
+  width: 100%;
+  min-height: 300px;
 }
 
 /* --------------------------------------------------------------------------
@@ -2705,4 +2859,240 @@ textarea.campo:focus {
   font-size: 0.9rem;
   color: var(--tinta-media);
   margin: 4px 0;
+}
+
+
+/* --------------------------------------------------------------------------
+   Painel personalizável: widgets arrastáveis
+   Fora do modo de personalização o Widget devolve o cartão direto, então
+   quase nada aqui aparece. Em edição, cada cartão ganha alça, olho e uma
+   moldura tracejada que mostra o alvo do arraste.
+   -------------------------------------------------------------------------- */
+
+.aviso-edicao-painel {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: var(--destaque-claro);
+  color: var(--destaque);
+  font-weight: 500;
+  font-size: 0.85rem;
+}
+
+.widget-editavel {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 12px;
+  border: 1.5px dashed var(--borda-forte);
+  border-radius: var(--raio);
+  background: rgba(109, 40, 217, 0.03);
+  transition: border-color 0.2s ease, background-color 0.2s ease, opacity 0.2s ease;
+}
+
+.widget-editavel:hover {
+  border-color: var(--destaque);
+}
+
+/* Durante o arraste o cartão saiu do fluxo: flutua acima e não reage ao hover. */
+.widget-editavel.widget-arrastando {
+  z-index: 30;
+  border-style: solid;
+  border-color: var(--destaque);
+  background: var(--cartao);
+  box-shadow: var(--sombra-flutuante);
+}
+
+/* Cartão oculto continua visível em edição, esmaecido, para poder voltar. */
+.widget-oculto {
+  opacity: 0.5;
+}
+
+.widget-oculto:hover {
+  opacity: 0.8;
+}
+
+.widget-oculto .widget-conteudo {
+  filter: grayscale(0.7);
+}
+
+.widget-conteudo {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+/* Sem o translateY do hover: em edição ele brigaria com a animação do arraste. */
+.widget-editavel .cartao:hover {
+  transform: none;
+}
+
+.widget-controles {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.widget-titulo {
+  flex: 1 1 auto;
+  min-width: 0;
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--tinta-media);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.widget-alca {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  width: 34px;
+  height: 34px;
+  border: 1.5px solid var(--borda);
+  border-radius: var(--raio-pequeno);
+  background: var(--cartao);
+  color: var(--tinta-fraca);
+  font-size: 1.05rem;
+  line-height: 1;
+  cursor: grab;
+  touch-action: none;
+  transition: all 0.2s ease;
+}
+
+.widget-alca:hover {
+  color: var(--destaque);
+  border-color: var(--destaque);
+  box-shadow: 0 2px 8px rgba(109, 40, 217, 0.12);
+}
+
+.widget-alca:active {
+  cursor: grabbing;
+}
+
+.widget-olho {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  width: 34px;
+  height: 34px;
+  border: 1.5px solid var(--borda);
+  border-radius: var(--raio-pequeno);
+  background: var(--cartao);
+  color: var(--tinta-media);
+  font-size: 0.9rem;
+  line-height: 1;
+  transition: all 0.2s ease;
+}
+
+.widget-olho:hover {
+  border-color: var(--destaque);
+  background: var(--destaque-claro);
+}
+
+.widget-olho[aria-pressed='false'] {
+  color: var(--saida);
+  border-color: var(--saida);
+}
+
+/* --------------------------------------------------------------------------
+   Widget: Dicas financeiras (carrossel)
+   -------------------------------------------------------------------------- */
+
+.dica-financeira {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  min-height: 104px;
+}
+
+.dica-financeira-emoji {
+  display: grid;
+  place-items: center;
+  flex: 0 0 52px;
+  width: 52px;
+  height: 52px;
+  border-radius: 14px;
+  background: var(--destaque-claro);
+  font-size: 1.5rem;
+  line-height: 1;
+}
+
+.dica-financeira-textos {
+  min-width: 0;
+}
+
+.dica-financeira-titulo {
+  font-size: 1rem;
+  font-weight: 700;
+  margin-bottom: 4px;
+}
+
+.dica-financeira-texto {
+  color: var(--tinta-media);
+  font-size: 0.875rem;
+  line-height: 1.6;
+}
+
+.dica-financeira-rodape {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-top: 16px;
+  padding-top: 14px;
+  border-top: 1px solid var(--borda);
+}
+
+.dica-financeira-pontos {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.dica-ponto {
+  width: 8px;
+  height: 8px;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  background: var(--borda-forte);
+  transition: all 0.2s ease;
+}
+
+.dica-ponto:hover {
+  background: var(--destaque-medio);
+}
+
+.dica-ponto.ativo {
+  width: 22px;
+  border-radius: 99px;
+  background: var(--destaque);
+}
+
+@media (max-width: 560px) {
+  .widget-editavel {
+    padding: 12px 12px 16px;
+  }
+
+  .dica-financeira {
+    flex-direction: column;
+  }
+
+  .dica-financeira-emoji {
+    flex: none;
+  }
+}
+
+@media print {
+  .widget-controles,
+  .aviso-edicao-painel {
+    display: none !important;
+  }
 }

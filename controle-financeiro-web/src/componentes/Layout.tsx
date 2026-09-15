@@ -1,7 +1,9 @@
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { NavLink, Outlet, useLocation } from 'react-router-dom';
 
 import { useAutenticacao } from '../contextos/ContextoAutenticacao';
+import { BotaoLembrete } from './BotaoLembrete';
+import { BotaoNotificacao } from './BotaoNotificacao';
 import { ModalDaConta } from './ModalDaConta';
 
 /// Moldura do app: navegação à esquerda no computador, barra inferior no
@@ -24,6 +26,7 @@ const ITENS: ItemDeNavegacao[] = [
   { para: '/previsao', rotulo: 'Previsão', rotuloCurto: 'Previsão', icone: '◔' },
   { para: '/categorias', rotulo: 'Categorias', rotuloCurto: 'Categorias', icone: '⬢' },
   { para: '/dividas', rotulo: 'Dívidas', rotuloCurto: 'Dívidas', icone: '💸' },
+  { para: '/lembretes', rotulo: 'Lembretes', rotuloCurto: 'Avisos', icone: '🔔' },
   { para: '/planejamento', rotulo: 'Planejamento', rotuloCurto: 'Plano', icone: '◎' },
   { para: '/historico', rotulo: 'Histórico', rotuloCurto: 'Histórico', icone: '≡' },
   { para: '/relatorios', rotulo: 'Relatórios', rotuloCurto: 'Relatórios', icone: '📊' },
@@ -33,6 +36,19 @@ const ITENS: ItemDeNavegacao[] = [
 
 const ITENS_PRINCIPAIS = ['/', '/receitas', '/despesas', '/recorrencias', '/dividas'];
 
+type Tema = 'light' | 'dark';
+
+/// Tema inicial: a escolha salva no localStorage vence; sem escolha salva,
+/// segue a preferência do sistema operacional (prefers-color-scheme).
+function lerTemaInicial(): Tema {
+  const salvo = localStorage.getItem('theme');
+  if (salvo === 'light' || salvo === 'dark') {
+    return salvo;
+  }
+  const prefereEscuro = window.matchMedia('(prefers-color-scheme: dark)').matches;
+  return prefereEscuro ? 'dark' : 'light';
+}
+
 export function Layout() {
   const { nomeParaExibir, usuario, sair } = useAutenticacao();
   const [contaAberta, definirContaAberta] = useState(false);
@@ -40,6 +56,21 @@ export function Layout() {
   const maisRef = useRef<HTMLLIElement>(null);
   const localAtual = useLocation();
   const inicial = nomeParaExibir.trim().charAt(0).toUpperCase() || '?';
+
+  const [tema, definirTema] = useState<Tema>(lerTemaInicial);
+
+  // Aplica o tema no <html>: é o atributo data-theme que o CSS escuta
+  // para trocar os tokens de cor.
+  useEffect(() => {
+    document.documentElement.setAttribute('data-theme', tema);
+  }, [tema]);
+
+  /// Alterna claro/escuro e grava a escolha do usuário no localStorage.
+  function alternarTema() {
+    const proximo: Tema = tema === 'dark' ? 'light' : 'dark';
+    definirTema(proximo);
+    localStorage.setItem('theme', proximo);
+  }
 
   const itensPrincipais = ITENS.filter((item) => ITENS_PRINCIPAIS.includes(item.para));
   const itensSecundarios = ITENS.filter((item) => !ITENS_PRINCIPAIS.includes(item.para));
@@ -101,6 +132,18 @@ export function Layout() {
 
           <button
             type="button"
+            className="botao-tema"
+            onClick={alternarTema}
+            aria-label={tema === 'dark' ? 'Ativar tema claro' : 'Ativar tema escuro'}
+          >
+            <span aria-hidden="true">{tema === 'dark' ? '☀️' : '🌙'}</span>
+            {tema === 'dark' ? 'Tema claro' : 'Tema escuro'}
+          </button>
+
+          <BotaoNotificacao comRotulo />
+
+          <button
+            type="button"
             className="botao-sair"
             onClick={() => void sair()}
             aria-label="Sair da conta"
@@ -118,14 +161,26 @@ export function Layout() {
             <img src="/logo.png" alt="Planeja" className="marca-logo-mini" />
             <span className="marca-nome">Planeja</span>
           </div>
-          <button
-            type="button"
-            className="inicial"
-            onClick={() => definirContaAberta(true)}
-            aria-label="Sua conta"
-          >
-            {inicial}
-          </button>
+          <div className="tira-conta-acoes">
+            <BotaoLembrete />
+            <BotaoNotificacao />
+            <button
+              type="button"
+              className="botao-tema"
+              onClick={alternarTema}
+              aria-label={tema === 'dark' ? 'Ativar tema claro' : 'Ativar tema escuro'}
+            >
+              <span aria-hidden="true">{tema === 'dark' ? '☀️' : '🌙'}</span>
+            </button>
+            <button
+              type="button"
+              className="inicial"
+              onClick={() => definirContaAberta(true)}
+              aria-label="Sua conta"
+            >
+              {inicial}
+            </button>
+          </div>
         </header>
 
         <main className="conteudo" role="main">
