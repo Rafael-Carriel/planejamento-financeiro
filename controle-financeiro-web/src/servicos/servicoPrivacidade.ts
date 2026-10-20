@@ -27,7 +27,10 @@ export async function exportarDadosPessoais() {
     }
     dados[nome] = registros;
   }
-  if (cobrancaConfigurada) dados.assinatura = await chamarCobranca('/me');
+  if (cobrancaConfigurada) {
+    try { dados.assinatura = await chamarCobranca('/me'); }
+    catch { dados.assinatura = { indisponivel:true,aviso:'Os dados de assinatura não puderam ser consultados. Solicite o complemento pelo canal de privacidade.' }; }
+  }
   const pedidos = await getDocs(query(collection(bancoDeDados,'solicitacoesPrivacidade'),where('uid','==',uid)));
   dados.solicitacoesPrivacidade = pedidos.docs.map(item=>({id:item.id,...item.data()}));
   if (auth.currentUser?.uid !== uid) throw new Error('Sua sessão mudou. Faça a exportação novamente.');
