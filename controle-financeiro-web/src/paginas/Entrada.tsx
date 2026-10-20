@@ -3,6 +3,7 @@ import { useState, type FormEvent } from 'react';
 import { useAutenticacao } from '../contextos/ContextoAutenticacao';
 import { mensagemDeErro } from '../servicos/servicoAutenticacao';
 import { formatarMoeda } from '../utilitarios/formatadores';
+import { Link } from 'react-router-dom';
 
 /// Entrada no app: entrar ou criar conta, com e-mail e senha.
 ///
@@ -29,6 +30,7 @@ export function Entrada() {
   const [erro, definirErro] = useState<string | null>(null);
   const [recado, definirRecado] = useState<string | null>(null);
   const [enviando, definirEnviando] = useState(false);
+  const [aceite, aceitar] = useState(false);
 
   const saldoDoExemplo = EXEMPLO.reduce(
     (soma, item) => soma + (item.tipo === 'entrada' ? item.valor : -item.valor),
@@ -58,6 +60,7 @@ export function Entrada() {
       definirErro('Digite seu nome.');
       return;
     }
+    if (modo === 'criar' && !aceite) { definirErro('Leia e aceite os Termos de Uso para criar a conta.'); return; }
 
     definirEnviando(true);
     try {
@@ -99,7 +102,7 @@ export function Entrada() {
             R$
           </span>
           <span className="marca-nome">
-            Controle Financeiro
+            Planeora
             <span>entradas e saídas</span>
           </span>
         </div>
@@ -198,6 +201,8 @@ export function Entrada() {
             {erro ? <div className="aviso aviso-erro">{erro}</div> : null}
             {recado ? <div className="aviso aviso-sucesso">{recado}</div> : null}
 
+            {modo === 'criar' && <label className="aceite-legal"><input type="checkbox" checked={aceite} onChange={e => aceitar(e.target.checked)} />
+              <span>Aceito os <Link to="/termos-de-uso" target="_blank" rel="noopener noreferrer">Termos de Uso</Link> e li a <Link to="/politica-de-privacidade" target="_blank" rel="noopener noreferrer">Política de Privacidade</Link>.</span></label>}
             <button type="submit" className="botao botao-principal" disabled={enviando}>
               {enviando
                 ? 'Um instante…'
@@ -217,6 +222,7 @@ export function Entrada() {
               </button>
             ) : null}
           </form>
+          <nav className="links-legais" aria-label="Informações legais"><Link to="/politica-de-privacidade">Privacidade</Link><Link to="/termos-de-uso">Termos de Uso</Link></nav>
         </div>
       </section>
     </div>

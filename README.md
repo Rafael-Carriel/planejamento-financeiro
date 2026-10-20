@@ -1,4 +1,10 @@
-# Planejamento Financeiro
+# Planeora
+
+O aplicativo original deste repositório usa agora o nome público Planeora. A publicação web permanece no site Firebase `controle-financeiro-rafael`; o outro site do projeto não é substituído.
+
+Privacidade e termos são acessíveis sem login. A área Privacidade e direitos permite exportar registros e protocolar pedidos; a administração acompanha os atendimentos. Consulte [SECURITY.md](SECURITY.md) e [operação de privacidade](docs/privacidade-operacao.md) para limites e procedimentos necessários. Esses documentos não constituem certificação jurídica ou pentest.
+
+Antes de publicar, confirme o responsável e contato em `controle-financeiro-web/src/legal.ts`, gere o build de produção e confira a revisão. A checagem anterior ao deploy bloqueia builds de teste e configurações incompletas. A mensalidade permanece desativada até liberação operacional.
 
 Controle de entradas e saídas do mês, em dois aplicativos que conversam com o
 **mesmo** projeto no Firebase (`controle-financeiro-rafael`) e com o mesmo

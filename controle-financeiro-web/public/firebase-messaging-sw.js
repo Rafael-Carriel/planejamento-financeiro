@@ -29,6 +29,11 @@ const firebaseConfig = {
   appId: '',
 };
 
+// Remove caches de dados pessoais criados por versões anteriores do app.
+self.addEventListener('activate', (evento) => {
+  evento.waitUntil(Promise.all(['firestore-cache', 'auth-cache'].map((nome) => caches.delete(nome))));
+});
+
 if (firebaseConfig.apiKey) {
   importScripts('https://www.gstatic.com/firebasejs/11.10.0/firebase-app-compat.js');
   importScripts('https://www.gstatic.com/firebasejs/11.10.0/firebase-messaging-compat.js');
@@ -40,7 +45,7 @@ if (firebaseConfig.apiKey) {
   // mensagem enviada pelo backend (Cloud Functions); se vier sem a parte de
   // notification, mostra o básico para o aviso não passar em branco.
   mensageria.onBackgroundMessage((payload) => {
-    const titulo = (payload.notification && payload.notification.title) || 'Planeja';
+    const titulo = (payload.notification && payload.notification.title) || 'Planeora';
     const corpo = (payload.notification && payload.notification.body) || '';
     self.registration.showNotification(titulo, {
       body: corpo,

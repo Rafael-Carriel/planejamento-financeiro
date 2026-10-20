@@ -28,7 +28,11 @@
     "react-router-dom": "^7.6.0",
     "recharts": "^3.10.1"
   },
+  "overrides": {
+    "@grpc/grpc-js": "1.14.6"
+  },
   "devDependencies": {
+    "@firebase/rules-unit-testing": "^4.0.1",
     "@playwright/test": "^1.63.0",
     "@types/react": "^19.1.0",
     "@types/react-dom": "^19.1.0",

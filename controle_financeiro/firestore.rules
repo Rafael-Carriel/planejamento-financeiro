@@ -10,13 +10,27 @@ service cloud.firestore {
 
     match /usuarios/{uid} {
       allow read: if ehDono(uid);
-      allow create, update: if ehDono(uid) && perfilValido();
-      // Exclusão de conta deve passar por um fluxo administrativo.
-      allow delete: if false;
+      allow create: if ehDono(uid) && perfilValido() && planoInicialValido();
+      allow update: if ehDono(uid) && perfilValido() && planoInalterado();
+      // Preserve the legacy owner's right to remove their own profile.
+      allow delete: if ehDono(uid);
+
+      match /aceitesLegais/{versao} {
+        allow read: if ehDono(uid);
+        allow create: if ehDono(uid) && request.resource.data.keys().hasOnly(['versao','termosAceitos','privacidadeLida','criadoEm'])
+          && request.resource.data.versao == versao && versao == '2026-10-20'
+          && request.resource.data.termosAceitos == true && request.resource.data.privacidadeLida == true
+          && request.resource.data.criadoEm == request.time;
+        allow update, delete: if false;
+      }
 
       match /transacoes/{transacaoId} {
         allow read, delete: if ehDono(uid);
-        allow create, update: if ehDono(uid) && transacaoValida();
+        // Once billing is active, all inserts go through Back4App, including
+        // automatic recurrences. Firebase Admin writes bypass these rules.
+        allow create: if ehDono(uid) && transacaoValida() && !cobrancaAtiva();
+        allow update: if ehDono(uid) && transacaoValida()
+          && (!cobrancaAtiva() || request.resource.data.criadoEm == resource.data.criadoEm);
       }
 
       // Categorias criadas pelo usuário, que se somam ao catálogo básico do
@@ -76,8 +90,55 @@ service cloud.firestore {
       }
     }
 
+    // Pedido de assinatura feito pelo próprio usuário. O id é o uid, então o
+    // worker consegue ligar o pagamento (por e-mail) ao dono da conta. O
+    // cliente só cria/edita o e-mail enquanto o pedido está pendente; status e
+    // ids do pagamento são escritos exclusivamente pelo worker.
+    match /solicitacoesDeAssinatura/{uid} {
+      allow read, delete: if ehDono(uid);
+      allow create: if ehDono(uid) && solicitacaoValida()
+        && request.resource.data.status == 'pendente'
+        && !request.resource.data.keys().hasAny([
+          'asaasPagamentoId', 'asaasAssinaturaId', 'ativadaEm', 'mensagem',
+        ]);
+      allow update: if ehDono(uid) && solicitacaoValida()
+        && (request.resource.data.status == resource.data.status
+          || (resource.data.status == 'recusada'
+            && request.resource.data.status == 'pendente'))
+        && request.resource.data.get('asaasPagamentoId', null)
+          == resource.data.get('asaasPagamentoId', null)
+        && request.resource.data.get('asaasAssinaturaId', null)
+          == resource.data.get('asaasAssinaturaId', null)
+        && request.resource.data.get('ativadaEm', null)
+          == resource.data.get('ativadaEm', null)
+        && request.resource.data.get('criadoEm', null)
+          == resource.data.get('criadoEm', null);
+    }
+
     // Explícito por clareza: o padrão do Firestore já é negar tudo que não
     // foi liberado acima.
+    match /solicitacoesPrivacidade/{pedido} {
+      allow read: if request.auth != null && (resource.data.uid == request.auth.uid || donoAdministrativo());
+      allow create: if request.auth != null && request.auth.token.email_verified == true
+        && request.resource.data.keys().hasOnly(['uid','tipo','mensagem','status','criadoEm','versao'])
+        && request.resource.data.uid == request.auth.uid
+        && request.resource.data.tipo in ['acesso','correcao','exclusao','portabilidade','oposicao']
+        && request.resource.data.mensagem is string && request.resource.data.mensagem.size() <= 1000
+        && request.resource.data.status == 'recebida' && request.resource.data.versao == '2026-10-20'
+        && request.resource.data.criadoEm == request.time;
+      allow update: if donoAdministrativo()
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status','atualizadoEm'])
+        && request.resource.data.status in ['recebida','em_analise','concluida']
+        && request.resource.data.atualizadoEm == request.time;
+      allow delete: if false;
+    }
+
+    function donoAdministrativo() {
+      return request.auth != null && request.auth.token.email_verified == true
+        && exists(/databases/$(database)/documents/billingSystem/owner)
+        && get(/databases/$(database)/documents/billingSystem/owner).data.uid == request.auth.uid;
+    }
+
     match /{documento=**} {
       allow read, write: if false;
     }
@@ -86,11 +147,63 @@ service cloud.firestore {
       return request.auth != null && request.auth.uid == uid;
     }
 
+    function cobrancaAtiva() {
+      return exists(/databases/$(database)/documents/billingSystem/config)
+        && get(/databases/$(database)/documents/billingSystem/config).data.enabled == true;
+    }
+
     function perfilValido() {
       let dados = request.resource.data;
       return dados.keys().hasOnly(
-        ['nome', 'email', 'criadoEm', 'atualizadoEm', 'tokensFcm']
-      );
+        ['nome', 'email', 'criadoEm', 'atualizadoEm', 'tokensFcm', 'configuracoes',
+          'aceiteTermosEm','versaoTermos','versaoPrivacidade','maioridadeConfirmada',
+          'plano','planoAtivoAte','asaasClienteId','asaasAssinaturaId']
+      ) && (!('nome' in dados) || (dados.nome is string && dados.nome.size() <= 80))
+        && (!('email' in dados) || (dados.email is string && dados.email.size() <= 254))
+        && (!('criadoEm' in dados) || dados.criadoEm is timestamp)
+        && (!('atualizadoEm' in dados) || dados.atualizadoEm is timestamp)
+        && (!('tokensFcm' in dados) || (dados.tokensFcm is list && dados.tokensFcm.size() <= 20))
+        && (!('configuracoes' in dados) || (dados.configuracoes is map
+          && (!('notificacoes' in dados.configuracoes) || (dados.configuracoes.notificacoes is map
+            && dados.configuracoes.notificacoes.keys().hasOnly(['tokenWeb','ativadoEm'])
+            && dados.configuracoes.notificacoes.tokenWeb is string && dados.configuracoes.notificacoes.tokenWeb.size() <= 4096
+            && dados.configuracoes.notificacoes.ativadoEm is timestamp))));
+    }
+
+    // Na criação, o cliente pode no máximo nascer no plano grátis.
+    function planoInicialValido() {
+      let dados = request.resource.data;
+      return (!dados.keys().hasAny(['plano']) || dados.plano == 'gratis')
+        && (!dados.keys().hasAny(['planoAtivoAte']) || dados.planoAtivoAte == null)
+        && !dados.keys().hasAny(['asaasClienteId', 'asaasAssinaturaId']);
+    }
+
+    // Em updates, esses campos precisam continuar exatamente como estavam.
+    function planoInalterado() {
+      let dados = request.resource.data;
+      let antigos = resource.data;
+      return dados.get('plano', 'gratis') == antigos.get('plano', 'gratis')
+        && dados.get('planoAtivoAte', null) == antigos.get('planoAtivoAte', null)
+        && dados.get('asaasClienteId', null) == antigos.get('asaasClienteId', null)
+        && dados.get('asaasAssinaturaId', null) == antigos.get('asaasAssinaturaId', null);
+    }
+
+    function solicitacaoValida() {
+      let dados = request.resource.data;
+      return dados.keys().hasOnly([
+          'email', 'status', 'criadoEm', 'atualizadoEm',
+          'asaasPagamentoId', 'asaasAssinaturaId', 'ativadaEm', 'mensagem',
+        ])
+        && dados.email is string
+        && dados.email.size() >= 5
+        && dados.email.size() <= 160
+        && dados.email.matches('.*@.*')
+        && request.auth.token.email is string
+        && dados.email == request.auth.token.email.lower()
+        && dados.status in ['pendente', 'aprovada', 'recusada']
+        && dados.criadoEm is timestamp
+        && dados.atualizadoEm is timestamp
+        && (!dados.keys().hasAny(['mensagem']) || dados.mensagem is string);
     }
 
     // Impede lixo no banco mesmo que alguém chame a API por fora do app.
@@ -321,6 +434,109 @@ service cloud.firestore {
         && dados.descricao.size() > 0
         && dados.descricao.size() <= 100
         && dados.data is timestamp;
+    }
+  }
+  // Planeora: isolated collections; original application rules preserved above.
+  match /databases/{database}/documents {
+    match /users/{userId} {
+      allow read: if signedIn() && request.auth.uid == userId;
+      allow create: if signedIn()
+        && request.auth.uid == userId
+        && request.resource.data.companyId == userId
+        && validUser(request.resource.data);
+      allow update: if signedIn()
+        && request.auth.uid == userId
+        && request.resource.data.companyId == resource.data.companyId
+        && request.resource.data.role == resource.data.role
+        && validUser(request.resource.data);
+      allow delete: if false;
+    }
+
+    match /companies/{companyId} {
+      allow create: if signedIn()
+        && request.auth.uid == companyId
+        && request.resource.data.ownerId == request.auth.uid
+        && validCompany(request.resource.data);
+      allow read: if belongsTo(companyId);
+      allow update: if belongsTo(companyId)
+        && request.resource.data.ownerId == resource.data.ownerId
+        && validCompany(request.resource.data);
+      allow delete: if false;
+
+      match /transactions/{transactionId} {
+        allow read, delete: if belongsTo(companyId);
+        allow create: if false;
+        allow update: if belongsTo(companyId)
+          && validTransaction(request.resource.data);
+      }
+
+      match /billing/{documentId} {
+        allow read: if belongsTo(companyId);
+        allow write: if false;
+      }
+      match /usage/{documentId} {
+        allow read: if belongsTo(companyId);
+        allow write: if false;
+      }
+
+      match /app_meta/{documentId} {
+        allow read, write: if belongsTo(companyId);
+      }
+    }
+
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function belongsTo(companyId) {
+      return signedIn()
+        && exists(/databases/$(database)/documents/users/$(request.auth.uid))
+        && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.companyId == companyId;
+    }
+
+    function validUser(data) {
+      return data.keys().hasOnly(['companyId', 'companyName', 'name', 'email', 'role', 'createdAt', 'updatedAt'])
+        && data.companyId is string
+        && data.companyName is string
+        && data.companyName.size() > 0
+        && data.companyName.size() <= 120
+        && data.name is string
+        && data.name.size() > 0
+        && data.name.size() <= 120
+        && data.email is string
+        && data.email.size() > 3
+        && data.email.size() <= 254
+        && data.role == 'owner';
+    }
+
+    function validCompany(data) {
+      return data.keys().hasOnly(['name', 'ownerId', 'createdAt', 'updatedAt'])
+        && data.name is string
+        && data.name.size() > 0
+        && data.name.size() <= 120
+        && data.ownerId is string;
+    }
+
+    function validTransaction(data) {
+      return data.keys().hasOnly(['type', 'description', 'amount', 'date', 'category', 'notes', 'createdAt', 'updatedAt'])
+        && data.type in ['income', 'expense']
+        && data.description is string
+        && data.description.size() > 0
+        && data.description.size() <= 120
+        && data.amount is number
+        && data.amount > 0
+        && data.amount <= 1000000000
+        && data.date is string
+        && data.date.matches('^\\d{4}-\\d{2}-\\d{2}$')
+        && data.category is string
+        && data.category.size() > 0
+        && data.category.size() <= 80
+        && data.notes is string
+        && data.notes.size() <= 500;
     }
   }
 }

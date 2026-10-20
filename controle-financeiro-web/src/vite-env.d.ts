@@ -4,6 +4,9 @@
 // `import.meta.env`; aqui só acrescentamos as chaves que este app usa, para o
 // TypeScript reclamar de erro de digitação no nome da variável.
 interface ImportMetaEnv {
+  readonly VITE_BILLING_API_URL?: string;
+  readonly VITE_BACK4APP_APP_ID?: string;
+  readonly VITE_BACK4APP_JAVASCRIPT_KEY?: string;
   readonly VITE_FIREBASE_API_KEY?: string;
   readonly VITE_FIREBASE_AUTH_DOMAIN?: string;
   readonly VITE_FIREBASE_PROJECT_ID?: string;

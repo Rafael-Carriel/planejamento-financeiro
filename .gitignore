@@ -35,3 +35,9 @@ Thumbs.db
 *.log
 *.apk
 .backup_app/
+# Credenciais privadas e resultados temporários de validação.
+*.pem
+*.key
+*service-account*.json
+*firebase-adminsdk*.json
+.env.sandbox-validation

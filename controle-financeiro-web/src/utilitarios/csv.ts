@@ -8,7 +8,9 @@ import { formatarData } from './formatadores';
 /// o que faz o Excel reconhecer o UTF-8 e não estragar os acentos.
 
 function escapar(campo: string): string {
-  const limpo = campo.replace(/"/g, '""');
+  // Quoting alone does not stop spreadsheet formula execution.
+  const seguro = /^[\s\u0000-\u001f]*[=+@-]/.test(campo) ? `'${campo}` : campo;
+  const limpo = seguro.replace(/"/g, '""');
   return `"${limpo}"`;
 }
 

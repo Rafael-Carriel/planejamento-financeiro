@@ -11,9 +11,11 @@ import {
   updateProfile,
   type User,
 } from 'firebase/auth';
-import { doc, getDoc, serverTimestamp, setDoc, updateDoc } from 'firebase/firestore';
+import { doc, getDoc, serverTimestamp, setDoc, updateDoc, runTransaction } from 'firebase/firestore';
+import { VERSAO_LEGAL } from '../legal';
+import { deleteToken, getMessaging, isSupported } from 'firebase/messaging';
 
-import { auth, bancoDeDados } from '../firebase/config';
+import { app, auth, bancoDeDados } from '../firebase/config';
 import type { Perfil } from '../tipos';
 
 /// Autenticação por e-mail e senha e o documento de perfil que acompanha cada
@@ -49,6 +51,9 @@ export async function criarConta(
       await updateProfile(credencial.user, { displayName: nomeLimpo });
     }
     await garantirPerfil(credencial.user.uid, nomeLimpo, credencial.user.email ?? email.trim());
+    await setDoc(doc(bancoDeDados,'usuarios',credencial.user.uid,'aceitesLegais',VERSAO_LEGAL),{
+      versao:VERSAO_LEGAL,termosAceitos:true,privacidadeLida:true,criadoEm:serverTimestamp(),
+    });
   } catch (erro) {
     console.error('Conta criada, mas o perfil não foi gravado agora.', erro);
     // Re-throw para que o caller possa tratar o erro se necessário
@@ -57,6 +62,11 @@ export async function criarConta(
 }
 
 export async function sair(): Promise<void> {
+  // Invalidate this browser's push address before another person signs in.
+  if (typeof Notification !== 'undefined' && Notification.permission === 'granted') {
+    try { if (await isSupported()) await deleteToken(getMessaging(app)); }
+    catch { /* Sign-out must remain available when push services are unavailable. */ }
+  }
   await signOut(auth);
 }
 
@@ -81,14 +91,19 @@ export async function garantirPerfil(
   const referencia = documentoDoUsuario(uid);
   const nomeLimpo = nome.trim();
 
-  // Sempre merge: true para evitar race condition entre cadastro e observador.
-  // Se o documento já existe, só sobrescreve os campos informados.
-  await setDoc(referencia, {
-    nome: nomeLimpo.length > 0 ? nomeLimpo : email.split('@')[0],
-    email,
-    criadoEm: serverTimestamp(),
-    atualizadoEm: serverTimestamp(),
-  }, { merge: true });
+  await runTransaction(bancoDeDados,async operacao=>{
+    const existente=await operacao.get(referencia);
+    if (!existente.exists()) operacao.set(referencia,{
+      nome:(nomeLimpo || email.split('@')[0]).slice(0,80),email,
+      criadoEm:serverTimestamp(),atualizadoEm:serverTimestamp(),
+    });
+    else {
+      const patch:Record<string,unknown>={};
+      if(existente.data().email!==email) patch.email=email;
+      if(nomeLimpo && existente.data().nome!==nomeLimpo) patch.nome=nomeLimpo.slice(0,80);
+      if(Object.keys(patch).length) operacao.update(referencia,{...patch,atualizadoEm:serverTimestamp()});
+    }
+  });
 }
 
 export async function lerPerfil(uid: string): Promise<Perfil | null> {

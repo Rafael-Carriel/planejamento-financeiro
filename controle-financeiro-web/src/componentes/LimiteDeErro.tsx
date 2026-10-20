@@ -23,10 +23,10 @@ export function TelaDeFalha({ detalhe }: { detalhe: string }) {
       <div className="cartao tela-aviso-caixa">
         <h1>O app parou aqui</h1>
         <p className="texto-apoio">
-          Um erro interrompeu a tela. A mensagem abaixo diz o que aconteceu; o console do
-          navegador tem o rastro completo.
+          Não foi possível carregar esta tela. Recarregue o aplicativo e, se continuar,
+          entre em contato com o suporte.
         </p>
-        <pre>{detalhe}</pre>
+        {import.meta.env.DEV && <pre>{detalhe}</pre>}
         <div>
           <button
             type="button"

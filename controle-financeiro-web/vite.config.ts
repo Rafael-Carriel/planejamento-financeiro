@@ -1,18 +1,32 @@
-import { defineConfig } from 'vite';
+import { defineConfig, loadEnv } from 'vite';
+import { execFileSync } from 'node:child_process';
 import react from '@vitejs/plugin-react';
 import { VitePWA } from 'vite-plugin-pwa';
+import { RESPONSAVEL } from './src/legal';
 
 // Configuração do Vite. `base: './'` deixa o build funcionar tanto no Firebase
 // Hosting quanto aberto de uma subpasta qualquer.
-export default defineConfig({
+export default defineConfig(({command,mode}) => {
+  if(command==='build' && mode!=='test' && (!RESPONSAVEL.nome.trim() || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(RESPONSAVEL.email))) {
+    throw new Error('Informe e confirme o responsável e contato público em src/legal.ts antes de publicar.');
+  }
+  return {
   plugins: [
+    {
+      name:'planeora-release-info',
+      generateBundle(){
+        const env=loadEnv(mode,process.cwd(),'VITE_');
+        const revision=execFileSync('git',['rev-parse','HEAD'],{encoding:'utf8'}).trim();
+        this.emitFile({type:'asset',fileName:'release.json',source:JSON.stringify({app:'Planeora',mode,projectId:env.VITE_FIREBASE_PROJECT_ID,revision,builtAt:new Date().toISOString(),legalVersion:'2026-10-20',controllerConfigured:Boolean(RESPONSAVEL.nome&&RESPONSAVEL.email)})});
+      },
+    },
     react(),
     VitePWA({
       registerType: 'autoUpdate',
       includeAssets: ['logo.png', 'favicon.ico'],
       manifest: {
-        name: 'Planeja - Planejamento Financeiro',
-        short_name: 'Planeja',
+        name: 'Planeora - Planejamento Financeiro',
+        short_name: 'Planeora',
         description: 'Controle financeiro pessoal: entradas, saídas, categorias e planejamento mensal.',
         theme_color: '#0E1626',
         background_color: '#0E1626',
@@ -45,7 +59,7 @@ export default defineConfig({
         // o app fechado — o firebase-messaging-sw.js detecta sozinho se já foi
         // configurado e não faz nada enquanto o firebaseConfig estiver vazio.
         importScripts: ['./firebase-messaging-sw.js'],
-        globPatterns: ['**/*.{ico,png,svg,woff2}'],
+        globPatterns: ['**/*.{html,js,css,ico,png,svg,woff2}'],
         navigateFallback: 'index.html',
         navigateFallbackDenylist: [/^\/api/],
         runtimeCaching: [
@@ -57,31 +71,6 @@ export default defineConfig({
               expiration: {
                 maxEntries: 60,
                 maxAgeSeconds: 60 * 60 * 24,
-              },
-            },
-          },
-          {
-            // Cache do Firestore offline
-            urlPattern: /^https:\/\/firestore\.googleapis\.com\/.*/i,
-            handler: 'NetworkFirst',
-            options: {
-              cacheName: 'firestore-cache',
-              expiration: {
-                maxEntries: 100,
-                maxAgeSeconds: 60 * 60 * 24 * 30, // 30 dias
-              },
-              networkTimeoutSeconds: 5,
-            },
-          },
-          {
-            // Cache do Firebase Auth
-            urlPattern: /^https:\/\/identitytoolkit\.googleapis\.com\/.*/i,
-            handler: 'NetworkFirst',
-            options: {
-              cacheName: 'auth-cache',
-              expiration: {
-                maxEntries: 5,
-                maxAgeSeconds: 60 * 60 * 24 * 7, // 7 dias
               },
             },
           },
@@ -110,4 +99,5 @@ export default defineConfig({
     outDir: 'dist',
     sourcemap: false,
   },
+};
 });

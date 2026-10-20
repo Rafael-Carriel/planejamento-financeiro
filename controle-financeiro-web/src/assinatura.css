@@ -1,0 +1,28 @@
+.assinatura-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:20px; margin:24px 0; }
+.assinatura-card { padding:28px; border:1px solid var(--borda); border-radius:20px; background:var(--cartao); }
+.assinatura-card h2 { font-size:2rem; margin:12px 0; letter-spacing:-.04em; }
+.assinatura-card h2 small { font-size:.95rem; font-weight:400; letter-spacing:0; }
+.assinatura-card p { line-height:1.6; margin:12px 0; }
+.assinatura-selo { text-transform:uppercase; font-size:.72rem; font-weight:700; letter-spacing:.1em; }
+.assinatura-destaque { border-color:#389c83; background:linear-gradient(135deg, #389c8310, transparent); }
+.assinatura-card progress { width:100%; height:12px; accent-color:#389c83; margin:16px 0; }
+.assinatura-detalhes { margin:20px 0; }
+.assinatura-detalhes > div { display:flex; justify-content:space-between; gap:20px; padding:12px 0; border-bottom:1px solid #8996a52b; }
+.assinatura-detalhes dd { margin:0; text-align:right; font-weight:600; }
+.assinatura-aviso { padding:16px 20px; border:1px solid #bf984a70; background:#bf984a12; border-radius:12px; margin:16px 0; line-height:1.5; }
+.assinatura-campo { display:grid; gap:8px; max-width:440px; margin:20px 0; font-weight:600; }
+.assinatura-campo input, .assinatura-campo select { min-height:44px; width:100%; padding:10px 12px; border:1px solid #8996a570; border-radius:10px; background:transparent; color:inherit; font:inherit; }
+.assinatura-campo select option { background:var(--superficie, #fff); color:#192d38; }
+.assinatura-aceite { display:flex; align-items:flex-start; gap:12px; margin:20px 0; line-height:1.5; }
+.assinatura-aceite input { margin-top:5px; flex-shrink:0; }
+.assinatura-cancelar { margin-top:24px; }
+.assinatura-cancelar summary { cursor:pointer; }
+.assinatura-tabela { overflow-x:auto; margin-top:20px; }
+.assinatura-tabela table { width:100%; border-collapse:collapse; text-align:left; font-size:.9rem; }
+.assinatura-tabela th { font-size:.72rem; letter-spacing:.04em; text-transform:uppercase; opacity:.7; }
+.assinatura-tabela td, .assinatura-tabela th { padding:15px 12px; border-bottom:1px solid #8996a52b; vertical-align:top; }
+.assinatura-tabela small { overflow-wrap:anywhere; opacity:.7; }
+.assinatura-historico { margin:24px 0; }
+.assinatura-verificacao-acoes { display:flex; flex-wrap:wrap; gap:12px; margin:12px 0; }
+.admin-indicadores { grid-template-columns:repeat(3,minmax(0,1fr)); }
+@media(max-width:800px) { .assinatura-grid { grid-template-columns:1fr; } .assinatura-card { padding:20px; } .assinatura-detalhes > div { flex-direction:column; gap:4px; } .assinatura-detalhes dd { text-align:left; } }

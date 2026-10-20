@@ -1,6 +1,5 @@
 import {
   Timestamp,
-  addDoc,
   collection,
   deleteDoc,
   doc,
@@ -20,6 +19,7 @@ import { bancoDeDados } from '../../firebase/config';
 import type { DadosDeTransacao, Transacao, TipoTransacao } from '../../tipos';
 import { chaveDoMes } from '../../utilitarios/datas';
 import type { IRepositorioTransacoes } from '../interfaces';
+import { criarTransacaoComCota, insercoesControladas } from '../../servicos/servicoAssinatura';
 
 /// Implementação Firestore de `usuarios/{uid}/transacoes`.
 ///
@@ -113,10 +113,15 @@ export class RepositorioFirestoreTransacoes implements IRepositorioTransacoes {
   }
 
   async criar(uid: string, dados: DadosDeTransacao): Promise<void> {
-    await addDoc(colecaoDeTransacoes(uid), {
-      ...paraFirestore(dados),
-      // Hora do servidor, não a do computador do usuário.
-      criadoEm: serverTimestamp(),
+    const id = dados.requestId ?? doc(colecaoDeTransacoes(uid)).id;
+    if (await insercoesControladas()) {
+      await criarTransacaoComCota(id, dados);
+      return;
+    }
+    const referencia = doc(bancoDeDados, 'usuarios', uid, 'transacoes', id);
+    await runTransaction(bancoDeDados, async operacao => {
+      if ((await operacao.get(referencia)).exists()) return;
+      operacao.set(referencia, { ...paraFirestore(dados), criadoEm: serverTimestamp() });
     });
   }
 
@@ -127,6 +132,10 @@ export class RepositorioFirestoreTransacoes implements IRepositorioTransacoes {
   ): Promise<void> {
     const idSeguro = recorrenciaId.replaceAll('/', '_');
     const id = `automatica-${idSeguro}-${chaveDoMes(dados.data)}`;
+    if (await insercoesControladas()) {
+      await criarTransacaoComCota(id, { ...dados, recorrenciaId });
+      return;
+    }
     const referencia = doc(bancoDeDados, 'usuarios', uid, 'transacoes', id);
 
     await runTransaction(bancoDeDados, async (operacao) => {

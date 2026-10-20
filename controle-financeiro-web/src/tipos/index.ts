@@ -37,6 +37,8 @@ export interface Transacao {
 /// O que o formulário entrega para gravar. Sem `id`: quem edita passa o id
 /// separado, quem cria não tem um ainda.
 export interface DadosDeTransacao {
+  /** Identifica a tentativa de criação para repetir com segurança após falha de rede. */
+  requestId?: string;
   descricao: string;
   valor: number;
   tipo: TipoTransacao;

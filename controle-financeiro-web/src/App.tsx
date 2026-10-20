@@ -21,6 +21,10 @@ import { Receitas } from './paginas/Receitas';
 import { Recorrencias } from './paginas/Recorrencias';
 import { Relatorios } from './paginas/Relatorios';
 import { ReservaEmergencia } from './paginas/ReservaEmergencia';
+import { Assinatura } from './paginas/Assinatura';
+import { Administracao } from './paginas/Administracao';
+import { ProvedorDeAssinatura } from './contextos/ContextoAssinatura';
+import { DocumentosLegais, Privacidade } from './paginas/Privacidade';
 
 /// Montagem do app.
 ///
@@ -37,6 +41,7 @@ function Portao() {
   if (!usuario) return <Entrada />;
 
   return (
+    <ProvedorDeAssinatura key={usuario.uid}>
     <ProvedorDeDados>
       <ProvedorDeLancamento>
         <Routes>
@@ -54,11 +59,15 @@ function Portao() {
             <Route path="relatorios" element={<Relatorios />} />
             <Route path="reserva-emergencia" element={<ReservaEmergencia />} />
             <Route path="objetivos" element={<Objetivos />} />
+            <Route path="assinatura" element={<Assinatura />} />
+            <Route path="admin" element={<Administracao />} />
+            <Route path="privacidade" element={<Privacidade />} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Route>
         </Routes>
       </ProvedorDeLancamento>
     </ProvedorDeDados>
+    </ProvedorDeAssinatura>
   );
 }
 
@@ -68,7 +77,11 @@ export default function App() {
       <ProvedorDeAutenticacao>
         <ProvedorDeMes>
           <ProvedorDeRepositorios>
-            <Portao />
+            <Routes>
+              <Route path="/politica-de-privacidade" element={<DocumentosLegais tipo="privacidade" />} />
+              <Route path="/termos-de-uso" element={<DocumentosLegais tipo="termos" />} />
+              <Route path="*" element={<Portao />} />
+            </Routes>
           </ProvedorDeRepositorios>
         </ProvedorDeMes>
       </ProvedorDeAutenticacao>

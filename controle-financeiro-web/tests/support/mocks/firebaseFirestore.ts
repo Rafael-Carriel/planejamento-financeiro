@@ -150,6 +150,9 @@ function documentosDaConsulta(alvo) {
       });
     } else if (restricao.__tipo === 'limit') {
       docs = docs.slice(0, restricao.n);
+    } else if (restricao.__tipo === 'startAfter') {
+      const position=docs.findIndex(function(d){return d.id===restricao.id;});
+      if(position>=0) docs=docs.slice(position+1);
     }
   }
 
@@ -208,6 +211,7 @@ export function orderBy(campo, direcao) {
 export function limit(n) {
   return { __tipo: 'limit', n: n };
 }
+export function startAfter(snapshot) { return {__tipo:'startAfter',id:snapshot.id}; }
 
 export function serverTimestamp() {
   return { __serverTimestamp: true };
@@ -290,7 +294,9 @@ export function onSnapshot(alvo, aoReceber, aoFalhar) {
   };
 }
 
+let filaTransacoes = Promise.resolve();
 export function runTransaction(_db, callback) {
+  const executar=async function(){
   aplicarSemente();
   const operacao = {
     get: function (ref) { return getDoc(ref); },
@@ -304,7 +310,11 @@ export function runTransaction(_db, callback) {
     update: function (ref, dados) { void updateDoc(ref, dados); },
     delete: function (ref) { void deleteDoc(ref); },
   };
-  return Promise.resolve(callback(operacao));
+  return callback(operacao);
+  };
+  const resultado=filaTransacoes.then(executar);
+  filaTransacoes=resultado.catch(function(){});
+  return resultado;
 }
 
 export function writeBatch(_db) {

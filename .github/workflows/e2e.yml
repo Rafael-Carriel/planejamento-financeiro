@@ -1,5 +1,8 @@
 name: E2E (Playwright)
 
+permissions:
+  contents: read
+
 on:
   push:
     branches: [main, master]
@@ -34,6 +37,26 @@ jobs:
       - name: Instalar as dependências
         run: npm ci
 
+      - name: Instalar dependências do servidor
+        working-directory: back4app/cloud
+        run: npm ci
+
+      - name: Verificar credenciais privadas
+        working-directory: .
+        run: node scripts/check-secrets.mjs
+
+      - name: Validar cálculos e build
+        run: |
+          npm run teste
+          npm run build -- --mode test
+          npm audit --omit=dev
+
+      - name: Validar servidor e dependências de produção
+        working-directory: back4app/cloud
+        run: |
+          npm test
+          npm audit --omit=dev
+
       - name: Instalar o navegador do Playwright
         run: npx playwright install --with-deps chromium
 
@@ -41,6 +64,25 @@ jobs:
         run: npm run test:e2e
         env:
           CI: 'true'
+
+      - name: Validar integração de tela sem rede real
+        run: npx playwright test tests/cobranca-conectada.spec.ts
+        env:
+          CI: 'true'
+          E2E_BILLING: '1'
+          VITE_BILLING_API_URL: https://billing.example.invalid
+          VITE_BACK4APP_APP_ID: fake-app
+          VITE_BACK4APP_JAVASCRIPT_KEY: fake-key
+
+      - name: Preparar Java para emuladores
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      - name: Validar regras e concorrência em banco isolado
+        working-directory: .
+        run: npx --yes firebase-tools@14.19.1 emulators:exec --config firebase.validation.json --project demo-planeja-validation --only firestore,auth "node --test controle-financeiro-web/validation/firestore.test.mjs"
 
       - name: Publicar o relatório
         if: ${{ !cancelled() }}

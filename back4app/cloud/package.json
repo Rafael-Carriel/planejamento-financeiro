@@ -1,0 +1,22 @@
+{
+  "name": "planeja-billing",
+  "version": "1.0.0",
+  "private": true,
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "start": "node local.js",
+    "test": "node --test test/*.test.js"
+  },
+  "dependencies": {
+    "express": "^4.21.2",
+    "firebase-admin": "^13.0.0"
+  },
+  "devDependencies": {
+    "supertest": "^7.0.0"
+  },
+  "overrides": {
+    "uuid": "11.1.1"
+  }
+}

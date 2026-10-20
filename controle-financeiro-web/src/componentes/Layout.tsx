@@ -1,10 +1,11 @@
 import { useEffect, useRef, useState } from 'react';
-import { NavLink, Outlet, useLocation } from 'react-router-dom';
+import { Link, NavLink, Outlet, useLocation } from 'react-router-dom';
 
 import { useAutenticacao } from '../contextos/ContextoAutenticacao';
 import { BotaoLembrete } from './BotaoLembrete';
 import { BotaoNotificacao } from './BotaoNotificacao';
 import { ModalDaConta } from './ModalDaConta';
+import { useAssinatura } from '../contextos/ContextoAssinatura';
 
 /// Moldura do app: navegação à esquerda no computador, barra inferior no
 /// celular, e o conteúdo da página no meio.
@@ -32,6 +33,8 @@ const ITENS: ItemDeNavegacao[] = [
   { para: '/relatorios', rotulo: 'Relatórios', rotuloCurto: 'Relatórios', icone: '📊' },
   { para: '/reserva-emergencia', rotulo: 'Reserva', rotuloCurto: 'Reserva', icone: '🛡' },
   { para: '/objetivos', rotulo: 'Objetivos', rotuloCurto: 'Objetivos', icone: '🎯' },
+  { para: '/assinatura', rotulo: 'Assinatura', rotuloCurto: 'Assinatura', icone: '◇' },
+  { para: '/privacidade', rotulo: 'Privacidade e direitos', rotuloCurto: 'Privacidade', icone: '◈' },
 ];
 
 const ITENS_PRINCIPAIS = ['/', '/receitas', '/despesas', '/recorrencias', '/dividas'];
@@ -50,6 +53,8 @@ function lerTemaInicial(): Tema {
 }
 
 export function Layout() {
+  const { assinatura } = useAssinatura();
+  const itens = assinatura?.admin ? [...ITENS, { para: '/admin', rotulo: 'Administração', rotuloCurto: 'Admin', icone: '⚙' }] : ITENS;
   const { nomeParaExibir, usuario, sair } = useAutenticacao();
   const [contaAberta, definirContaAberta] = useState(false);
   const [maisAberto, definirMaisAberto] = useState(false);
@@ -58,6 +63,16 @@ export function Layout() {
   const inicial = nomeParaExibir.trim().charAt(0).toUpperCase() || '?';
 
   const [tema, definirTema] = useState<Tema>(lerTemaInicial);
+
+  useEffect(() => { definirMaisAberto(false); }, [localAtual.pathname]);
+  useEffect(() => {
+    if (!maisAberto) return;
+    const aoTeclar = (evento: KeyboardEvent) => {
+      if (evento.key === 'Escape') definirMaisAberto(false);
+    };
+    window.addEventListener('keydown', aoTeclar);
+    return () => window.removeEventListener('keydown', aoTeclar);
+  }, [maisAberto]);
 
   // Aplica o tema no <html>: é o atributo data-theme que o CSS escuta
   // para trocar os tokens de cor.
@@ -72,8 +87,8 @@ export function Layout() {
     localStorage.setItem('theme', proximo);
   }
 
-  const itensPrincipais = ITENS.filter((item) => ITENS_PRINCIPAIS.includes(item.para));
-  const itensSecundarios = ITENS.filter((item) => !ITENS_PRINCIPAIS.includes(item.para));
+  const itensPrincipais = itens.filter((item) => ITENS_PRINCIPAIS.includes(item.para));
+  const itensSecundarios = itens.filter((item) => !ITENS_PRINCIPAIS.includes(item.para));
   const temAtivoSecundario = itensSecundarios.some((item) => localAtual.pathname === item.para);
 
   return (
@@ -86,14 +101,14 @@ export function Layout() {
             <img src="/logo.png" alt="" className="marca-logo" />
           </div>
           <div className="marca-texto">
-            <span className="marca-nome">Planejamento financeiro</span>
+            <span className="marca-nome">Planeora</span>
           </div>
         </div>
 
         {/* Navegação principal */}
         <nav className="navegacao" aria-label="Seções do app">
           <ul className="navegacao-lista" role="list">
-            {ITENS.map((item) => (
+            {itens.map((item) => (
               <li key={item.para} className="navegacao-item">
                 <NavLink
                   to={item.para}
@@ -158,8 +173,8 @@ export function Layout() {
         {/* Barra superior mobile */}
         <header className="tira-conta" role="banner">
           <div className="tira-conta-esquerda">
-            <img src="/logo.png" alt="Planeja" className="marca-logo-mini" />
-            <span className="marca-nome">Planeja</span>
+            <img src="/logo.png" alt="Planeora" className="marca-logo-mini" />
+            <span className="marca-nome">Planeora</span>
           </div>
           <div className="tira-conta-acoes">
             <BotaoLembrete />
@@ -185,6 +200,9 @@ export function Layout() {
 
         <main className="conteudo" role="main">
           <div className="conteudo-conteiner">
+            {assinatura?.enabled && !assinatura.admin && assinatura.count >= assinatura.limit && <div className="assinatura-aviso" role="status">
+              Você utilizou suas {assinatura.limit} inserções. <Link to="/assinatura">Libere mais 30 na sua assinatura.</Link>
+            </div>}
             <Outlet />
           </div>
         </main>
@@ -253,6 +271,15 @@ export function Layout() {
                       <span className="popover-item-rotulo">{item.rotulo}</span>
                     </NavLink>
                   ))}
+                  <div className="popover-configuracoes">
+                    <button type="button" className="popover-item" role="menuitem" onClick={() => { definirMaisAberto(false); definirContaAberta(true); }}>
+                      <span aria-hidden="true">◉</span> Perfil e configurações
+                    </button>
+                    <button type="button" className="popover-item" role="menuitem" onClick={alternarTema}>
+                      <span aria-hidden="true">{tema === 'dark' ? '☀️' : '🌙'}</span> {tema === 'dark' ? 'Ativar tema claro' : 'Ativar tema escuro'}
+                    </button>
+                    <button type="button" className="popover-item" role="menuitem" onClick={() => void sair()}>Sair da conta</button>
+                  </div>
                 </div>
               </>
             )}

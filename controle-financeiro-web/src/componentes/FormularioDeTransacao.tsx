@@ -50,6 +50,7 @@ export function FormularioDeTransacao({ transacao, tipoInicial, aoFechar }: Prop
 
   const [erro, definirErro] = useState<string | null>(null);
   const [salvando, definirSalvando] = useState(false);
+  const [requestId, definirRequestId] = useState(() => crypto.randomUUID());
   const [confirmacao, definirConfirmacao] = useState<string | null>(null);
 
   const categorias = useMemo(
@@ -95,6 +96,7 @@ export function FormularioDeTransacao({ transacao, tipoInicial, aoFechar }: Prop
     if (observacao.length > 500) return 'A observação passou de 500 caracteres.';
 
     return {
+      requestId,
       descricao,
       valor,
       tipo: formulario.tipo,
@@ -119,6 +121,7 @@ export function FormularioDeTransacao({ transacao, tipoInicial, aoFechar }: Prop
     definirErro(null);
     try {
       await salvarTransacao(resultado, transacao?.id);
+      definirRequestId(crypto.randomUUID());
 
       if (!continuar) {
         aoFechar();
