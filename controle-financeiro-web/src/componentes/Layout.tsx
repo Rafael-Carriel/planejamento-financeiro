@@ -18,6 +18,7 @@ interface ItemDeNavegacao {
 }
 
 const ITENS: ItemDeNavegacao[] = [
+  { para: '/atendimento', rotulo: 'SAC e ajuda', rotuloCurto: 'SAC', icone: '?' },
   { para: '/', rotulo: 'Painel', rotuloCurto: 'Painel', icone: '◧' },
   { para: '/receitas', rotulo: 'Receitas', rotuloCurto: 'Receitas', icone: '↑' },
   { para: '/despesas', rotulo: 'Despesas', rotuloCurto: 'Despesas', icone: '↓' },

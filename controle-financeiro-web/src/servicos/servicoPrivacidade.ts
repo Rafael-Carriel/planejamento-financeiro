@@ -33,6 +33,8 @@ export async function exportarDadosPessoais() {
   }
   const pedidos = await getDocs(query(collection(bancoDeDados,'solicitacoesPrivacidade'),where('uid','==',uid)));
   dados.solicitacoesPrivacidade = pedidos.docs.map(item=>({id:item.id,...item.data()}));
+  const chamados = await getDocs(query(collection(bancoDeDados,'chamadosAtendimento'),where('uid','==',uid)));
+  dados.atendimentos = chamados.docs.map(item=>({id:item.id,...item.data()}));
   if (auth.currentUser?.uid !== uid) throw new Error('Sua sessão mudou. Faça a exportação novamente.');
   const json = JSON.stringify(dados, (_key,valor) => valor && typeof valor.toDate === 'function' ? valor.toDate().toISOString() : valor,2);
   const url = URL.createObjectURL(new Blob([json],{type:'application/json;charset=utf-8'}));

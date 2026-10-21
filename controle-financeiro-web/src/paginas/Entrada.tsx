@@ -222,7 +222,7 @@ export function Entrada() {
               </button>
             ) : null}
           </form>
-          <nav className="links-legais" aria-label="Informações legais"><Link to="/politica-de-privacidade">Privacidade</Link><Link to="/termos-de-uso">Termos de Uso</Link></nav>
+          <nav className="links-legais" aria-label="Informações legais"><Link to="/atendimento">SAC e ajuda</Link><Link to="/politica-de-privacidade">Privacidade</Link><Link to="/termos-de-uso">Termos de Uso</Link></nav>
         </div>
       </section>
     </div>

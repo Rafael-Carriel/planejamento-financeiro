@@ -1,3 +1,4 @@
+import { Atendimento } from './paginas/Atendimento';
 import { HashRouter, Navigate, Route, Routes } from 'react-router-dom';
 
 import { Layout } from './componentes/Layout';
@@ -79,6 +80,7 @@ export default function App() {
           <ProvedorDeRepositorios>
             <Routes>
               <Route path="/politica-de-privacidade" element={<DocumentosLegais tipo="privacidade" />} />
+              <Route path="/atendimento" element={<Atendimento />} />
               <Route path="/termos-de-uso" element={<DocumentosLegais tipo="termos" />} />
               <Route path="*" element={<Portao />} />
             </Routes>

@@ -1,3 +1,4 @@
+import { Chamados } from './Atendimento';
 import { useEffect, useState } from 'react';
 import { CabecalhoDaPagina } from '../componentes/CabecalhoDaPagina';
 import { useAssinatura } from '../contextos/ContextoAssinatura';
@@ -86,6 +87,6 @@ export function Administracao() {
       {!pagamentosVisiveis.length && <p>Nenhuma cobrança disponível.</p>}
       {cursorPagamentos && <button className="botao" disabled={ocupado} onClick={() => void carregar('pagamentos', true)}>Carregar mais pagamentos</button>}
     </section>
-    {assinatura?.admin && <SolicitacoesPrivacidade />}
+    {assinatura?.admin && <><Chamados administrador /><SolicitacoesPrivacidade /></>}
   </>;
 }

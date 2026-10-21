@@ -5,7 +5,7 @@ import {semearFirestore} from './support/mocks';
 test('documentos legais são públicos e o nome é Planeora',async({page})=>{
   await page.goto('/#/politica-de-privacidade');
   await expect(page.getByRole('heading',{name:'Política de Privacidade',exact:true})).toBeVisible();
-  await expect(page.getByText(/Responsável pelo Planeora/)).toBeVisible();
+  await expect(page.getByText(/Atendimento do Planeora/)).toBeVisible();
   await page.getByRole('link',{name:'Termos de Uso',exact:true}).click();
   await expect(page.getByRole('heading',{name:'Termos de Uso',exact:true})).toBeVisible();
   await expect(page).toHaveTitle('Planeora');
@@ -55,4 +55,15 @@ test('cadastro registra versão aceita e preserva nome e data após recarregar',
   await semearFirestore(page,[{path:`usuarios/${before.conta.uid}`,data:{...before.perfil,criadoEm:{__date:before.perfil.criadoEm},atualizadoEm:{__date:before.perfil.atualizadoEm}}}]);
   await page.reload(); const after=await exportar();
   expect(after.perfil.nome).toBe(before.perfil.nome);expect(after.perfil.criadoEm).toEqual(before.perfil.criadoEm);
+});
+
+test('SAC público explica ajuda e permite acompanhar protocolo autenticado',async({page})=>{
+  await page.goto('/#/atendimento');
+  await expect(page.getByRole('heading',{name:'SAC do Planeora'})).toBeVisible();
+  await expect(page.getByRole('link',{name:'Entre na sua conta'})).toBeVisible();
+  await autenticar(page); await navegar(page,'/atendimento');
+  await page.getByLabel('Mensagem',{exact:true}).fill('Preciso de ajuda com um teste de atendimento.');
+  await page.getByRole('button',{name:'Enviar atendimento',exact:true}).click();
+  await expect(page.getByText(/Protocolo:/)).toBeVisible();
+  await expect(page.getByText('Aguardando atendimento.')).toBeVisible();
 });

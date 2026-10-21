@@ -8,6 +8,21 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
+    match /chamadosAtendimento/{id} {
+      allow read: if request.auth != null && (resource.data.uid == request.auth.uid || donoAdministrativo());
+      allow create: if request.auth != null && request.auth.token.email_verified == true
+        && request.resource.data.keys().hasOnly(['uid','assunto','mensagem','resposta','status','criadoEm'])
+        && request.resource.data.uid == request.auth.uid
+        && request.resource.data.assunto in ['Suporte','Pagamento e cancelamento','Privacidade e dados','Reclamação']
+        && request.resource.data.mensagem is string && request.resource.data.mensagem.size() >= 5 && request.resource.data.mensagem.size() <= 2000
+        && request.resource.data.resposta == '' && request.resource.data.status == 'recebido'
+        && request.resource.data.criadoEm == request.time;
+      allow update: if donoAdministrativo()
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['resposta','status','atualizadoEm'])
+        && request.resource.data.resposta is string && request.resource.data.resposta.size() > 0 && request.resource.data.resposta.size() <= 2000
+        && request.resource.data.status == 'respondido' && request.resource.data.atualizadoEm == request.time;
+      allow delete: if false;
+    }
     match /usuarios/{uid} {
       allow read: if ehDono(uid);
       allow create: if ehDono(uid) && perfilValido() && planoInicialValido();

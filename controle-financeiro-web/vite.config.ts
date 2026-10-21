@@ -2,14 +2,12 @@ import { defineConfig, loadEnv } from 'vite';
 import { execFileSync } from 'node:child_process';
 import react from '@vitejs/plugin-react';
 import { VitePWA } from 'vite-plugin-pwa';
-import { RESPONSAVEL } from './src/legal';
+import { ATENDIMENTO } from './src/legal';
 
 // Configuração do Vite. `base: './'` deixa o build funcionar tanto no Firebase
 // Hosting quanto aberto de uma subpasta qualquer.
 export default defineConfig(({command,mode}) => {
-  if(command==='build' && mode!=='test' && (!RESPONSAVEL.nome.trim() || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(RESPONSAVEL.email))) {
-    throw new Error('Informe e confirme o responsável e contato público em src/legal.ts antes de publicar.');
-  }
+  if(command==='build' && (!ATENDIMENTO.nome || ATENDIMENTO.rota!=='/atendimento')) throw new Error('Configure o SAC antes de publicar.');
   return {
   plugins: [
     {
@@ -17,7 +15,7 @@ export default defineConfig(({command,mode}) => {
       generateBundle(){
         const env=loadEnv(mode,process.cwd(),'VITE_');
         const revision=execFileSync('git',['rev-parse','HEAD'],{encoding:'utf8'}).trim();
-        this.emitFile({type:'asset',fileName:'release.json',source:JSON.stringify({app:'Planeora',mode,projectId:env.VITE_FIREBASE_PROJECT_ID,revision,builtAt:new Date().toISOString(),legalVersion:'2026-10-20',controllerConfigured:Boolean(RESPONSAVEL.nome&&RESPONSAVEL.email)})});
+        this.emitFile({type:'asset',fileName:'release.json',source:JSON.stringify({app:'Planeora',mode,projectId:env.VITE_FIREBASE_PROJECT_ID,revision,builtAt:new Date().toISOString(),legalVersion:'2026-10-20',supportConfigured:Boolean(ATENDIMENTO.nome&&ATENDIMENTO.rota)})});
       },
     },
     react(),

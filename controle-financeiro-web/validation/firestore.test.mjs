@@ -143,3 +143,22 @@ test('campos financeiros legados são preservados e não podem conceder plano pe
   await assertSucceeds(setDoc(doc(db,'solicitacoesDeAssinatura/user-a'),{email:'a@example.invalid',status:'pendente',criadoEm:serverTimestamp(),atualizadoEm:serverTimestamp()}));
   await assertFails(updateDoc(doc(db,'solicitacoesDeAssinatura/user-a'),{status:'aprovada'}));
 });
+test('SAC isola protocolos e permite resposta somente do administrador verificado', async () => {
+  await serverDb.doc('billingSystem/owner').set({uid:'owner'});
+  const own=env.authenticatedContext('user-a',{email_verified:true}).firestore();
+  const other=env.authenticatedContext('user-b',{email_verified:true}).firestore();
+  const owner=env.authenticatedContext('owner',{email_verified:true}).firestore();
+  const ref=doc(own,'chamadosAtendimento/protocolo');
+  const data={uid:'user-a',assunto:'Suporte',mensagem:'Preciso de ajuda',resposta:'',status:'recebido',criadoEm:serverTimestamp()};
+  await assertSucceeds(setDoc(ref,data));
+  await assertSucceeds(getDocs(query(collection(own,'chamadosAtendimento'),where('uid','==','user-a'))));
+  await assertFails(getDoc(doc(other,'chamadosAtendimento/protocolo')));
+  await assertFails(updateDoc(ref,{resposta:'Resposta falsa',status:'respondido',atualizadoEm:serverTimestamp()}));
+  await assertFails(setDoc(doc(other,'chamadosAtendimento/falso'),data));
+  await assertFails(setDoc(doc(env.authenticatedContext('user-a',{email_verified:false}).firestore(),'chamadosAtendimento/naoverificado'),data));
+  await assertFails(setDoc(doc(own,'chamadosAtendimento/longo'),{...data,mensagem:'x'.repeat(2001)}));
+  await assertSucceeds(updateDoc(doc(owner,'chamadosAtendimento/protocolo'),{resposta:'Atendimento do Planeora',status:'respondido',atualizadoEm:serverTimestamp()}));
+  assert.equal((await getDoc(ref)).data().resposta,'Atendimento do Planeora');
+  await assertFails(updateDoc(doc(owner,'chamadosAtendimento/protocolo'),{uid:'user-b'}));
+  await assertFails(deleteDoc(ref));
+});

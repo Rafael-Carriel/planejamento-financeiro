@@ -52,3 +52,9 @@ Conter o acesso, preservar evidências com acesso restrito, identificar escopo e
 - [ANPD: comunicação de incidente](https://www.gov.br/anpd/pt-br/canais_atendimento/agente-de-tratamento/comunicado-de-incidente-de-seguranca-cis)
 - [ANPD: transferências internacionais](https://www.gov.br/anpd/pt-br/assuntos/assuntos-internacionais/transferencia-internacional-de-dados)
 - [Firebase: privacidade e segurança](https://firebase.google.com/support/privacy/)
+
+
+### SAC do Planeora
+O nome público autorizado é Planeora, com atendimento em `/#/atendimento`. Não divulgar nome ou e-mail pessoal do proprietário. Usuários com e-mail verificado abrem protocolos privados; o administrador verificado responde na área Administração. Consultar diariamente SAC e pedidos de privacidade; respostas aparecem no sistema, sem aviso automático por e-mail. Incluir mensagens na exportação e na análise de retenção/exclusão.
+
+A marca e o SAC não substituem a identificação jurídica do fornecedor/controlador quando exigida. Essa identificação e um canal alternativo para pessoas sem acesso à conta permanecem pendências de análise jurídica e operacional; não declarar conformidade integral com LGPD/CDC.
