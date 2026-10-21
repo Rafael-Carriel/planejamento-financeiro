@@ -9,9 +9,9 @@ test('explica consumo acumulado, faixas e não permite cobrar sem integração',
   await expect(page.getByRole('heading', { name: 'Sua assinatura' })).toBeVisible();
   await expect(page.getByText('50 inserções acumuladas', { exact: true })).toBeVisible();
   await expect(page.getByRole('button', { name: 'Continuar para pagamento' })).toBeDisabled();
-  await page.getByRole('spinbutton', { name: 'Blocos de 30 inserções' }).fill('2');
+  await page.getByRole('button', { name: /Plano Mais: 80 inserções/ }).click();
   await expect(page.getByText('80 inserções acumuladas', { exact: true })).toBeVisible();
-  await expect(page.getByRole('heading', { name: /40,00/ })).toBeVisible();
+  await expect(page.locator('.checkout-preco')).toContainText('40,00');
   if (process.env.PLANEJA_PREVIEW_DIR) await page.screenshot({ path: join(process.env.PLANEJA_PREVIEW_DIR, 'assinatura-preview.png'), fullPage: true });
 });
 

@@ -4,12 +4,15 @@ import { useAutenticacao } from '../contextos/ContextoAutenticacao';
 import { mensagemDeErro } from '../servicos/servicoAutenticacao';
 import { formatarData } from '../utilitarios/formatadores';
 import { Modal } from './Modal';
+import { InstalarAplicativo } from './InstalarAplicativo';
+import { useTema } from '../contextos/ContextoTema';
 
 /// Abas do perfil.
 type AbaPerfil = 'nome' | 'email' | 'senha';
 
 /// Conta do usuário: trocar nome, e-mail, senha e sair.
 export function ModalDaConta({ aoFechar }: { aoFechar: () => void }) {
+  const {tema,alternarTema}=useTema();
   const { usuario, perfil, nomeParaExibir, sair, atualizarNome, atualizarEmail, atualizarSenha } =
     useAutenticacao();
 
@@ -125,6 +128,7 @@ export function ModalDaConta({ aoFechar }: { aoFechar: () => void }) {
   return (
     <Modal
       titulo="Sua conta"
+      descricao="Seu perfil, acesso e preferências do Planeora."
       aoFechar={aoFechar}
       rodape={
         <>
@@ -137,36 +141,11 @@ export function ModalDaConta({ aoFechar }: { aoFechar: () => void }) {
         </>
       }
     >
-      {/* Abas */}
-      <div className="abas-perfil" role="tablist">
-        <button
-          type="button"
-          role="tab"
-          aria-selected={aba === 'nome'}
-          className={`aba${aba === 'nome' ? ' ativa' : ''}`}
-          onClick={() => definirAba('nome')}
-        >
-          Nome
-        </button>
-        <button
-          type="button"
-          role="tab"
-          aria-selected={aba === 'email'}
-          className={`aba${aba === 'email' ? ' ativa' : ''}`}
-          onClick={() => definirAba('email')}
-        >
-          E-mail
-        </button>
-        <button
-          type="button"
-          role="tab"
-          aria-selected={aba === 'senha'}
-          className={`aba${aba === 'senha' ? ' ativa' : ''}`}
-          onClick={() => definirAba('senha')}
-        >
-          Senha
-        </button>
+      <div className="conta-resumo"><span className="conta-avatar" aria-hidden="true">{nomeParaExibir.slice(0,1).toUpperCase()}</span><div><strong>{nomeParaExibir}</strong><p>{usuario?.email}</p><span className="conta-verificacao">{usuario?.emailVerified?'E-mail verificado':'E-mail não verificado'}</span></div></div>
+      <div className="conta-abas" role="tablist" aria-label="Configurações da conta">
+        {([{id:'nome',titulo:'Perfil',icone:'M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8ZM4 21v-2a8 8 0 0 1 16 0v2'}, {id:'email',titulo:'E-mail',icone:'M3 5h18v14H3ZM3 6l9 7 9-7'}, {id:'senha',titulo:'Segurança',icone:'M5 10h14v11H5ZM8 10V7a4 4 0 0 1 8 0v3'}] as const).map((item,i,lista)=><button key={item.id} type="button" role="tab" id={`conta-aba-${item.id}`} aria-controls="conta-painel" aria-selected={aba===item.id} tabIndex={aba===item.id?0:-1} onClick={()=>definirAba(item.id)} onKeyDown={e=>{const proximo=e.key==='ArrowRight'?(i+1)%3:e.key==='ArrowLeft'?(i+2)%3:e.key==='Home'?0:e.key==='End'?2:null;if(proximo!==null){e.preventDefault();definirAba(lista[proximo].id);document.getElementById(`conta-aba-${lista[proximo].id}`)?.focus();}}}><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="1.6" aria-hidden="true"><path d={item.icone}/></svg>{item.titulo}</button>)}
       </div>
+      <div className="conta-painel" id="conta-painel" role="tabpanel" aria-labelledby={`conta-aba-${aba}`}>
 
       {/* Aba: Nome */}
       {aba === 'nome' && (
@@ -185,11 +164,6 @@ export function ModalDaConta({ aoFechar }: { aoFechar: () => void }) {
             <span className="dica-campo">É o nome que aparece no canto da tela.</span>
           </label>
 
-          <div className="campo">
-            <span>E-mail</span>
-            <p className="texto-apoio">{usuario?.email ?? '—'}</p>
-          </div>
-
           {perfil?.criadoEm ? (
             <p className="texto-miudo">Conta criada em {formatarData(perfil.criadoEm)}.</p>
           ) : null}
@@ -199,7 +173,7 @@ export function ModalDaConta({ aoFechar }: { aoFechar: () => void }) {
             <div className="aviso aviso-sucesso">Nome atualizado.</div>
           ) : null}
 
-          <button type="submit" className="botao botao-suave" disabled={salvandoNome}>
+          <button type="submit" className="botao botao-principal" disabled={salvandoNome}>
             {salvandoNome ? 'Salvando…' : 'Salvar nome'}
           </button>
         </form>
@@ -247,7 +221,7 @@ export function ModalDaConta({ aoFechar }: { aoFechar: () => void }) {
             <div className="aviso aviso-sucesso">E-mail atualizado com sucesso.</div>
           ) : null}
 
-          <button type="submit" className="botao botao-suave" disabled={salvandoEmail}>
+          <button type="submit" className="botao botao-principal" disabled={salvandoEmail}>
             {salvandoEmail ? 'Salvando…' : 'Salvar e-mail'}
           </button>
         </form>
@@ -301,11 +275,13 @@ export function ModalDaConta({ aoFechar }: { aoFechar: () => void }) {
             <div className="aviso aviso-sucesso">Senha atualizada com sucesso.</div>
           ) : null}
 
-          <button type="submit" className="botao botao-suave" disabled={salvandoSenha}>
+          <button type="submit" className="botao botao-principal" disabled={salvandoSenha}>
             {salvandoSenha ? 'Salvando…' : 'Salvar senha'}
           </button>
         </form>
       )}
+      </div>
+      <div className="conta-preferencias"><div className="conta-aparencia"><div><h3>Aparência</h3><p>{tema==='dark'?'Tema escuro':'Tema claro'}</p></div><button className="botao botao-contorno" onClick={alternarTema} type="button">{tema==='dark'?'Usar tema claro':'Usar tema escuro'}</button></div><InstalarAplicativo /></div>
     </Modal>
   );
 }

@@ -39,7 +39,10 @@ test('checkout exige aceite e disponibiliza somente link seguro retornado', asyn
   const button = page.getByRole('button', {name:'Continuar para pagamento'});
   await expect(button).toBeDisabled();
   await page.getByLabel('CPF ou CNPJ para cobrança').fill('24971563792');
+  await page.getByRole('checkbox').check();
+  await page.getByRole('button',{name:/Plano Mais: 80 inserções/}).click();
+  await expect(page.getByRole('checkbox')).not.toBeChecked();await expect(button).toBeDisabled();
   await page.getByRole('checkbox').check(); await button.click();
   await expect(page.getByRole('link', { name: /Abrir pagamento no Asaas/ })).toHaveAttribute('href','https://sandbox.asaas.com/i/qa');
-  expect(checkout).toMatchObject({blocks:1,accepted:true,cpfCnpj:'24971563792'});
+  expect(checkout).toMatchObject({blocks:2,accepted:true,cpfCnpj:'24971563792'});
 });

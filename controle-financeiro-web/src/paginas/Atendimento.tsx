@@ -1,3 +1,4 @@
+import { AcoesPublicas } from '../componentes/AcoesPublicas';
 import { useEffect, useState, type FormEvent } from 'react';
 import { Link } from 'react-router-dom';
 import { collection, doc, getDocs, limit, orderBy, query, serverTimestamp, setDoc, updateDoc, where } from 'firebase/firestore';
@@ -36,23 +37,23 @@ export function Chamados({administrador=false}:{administrador?:boolean}) {
     catch {falhar('Não foi possível salvar a resposta.');}finally{ocupar(false);}
   }
   if(!usuario) return <p><Link to="/">Entre na sua conta</Link> para abrir e acompanhar um atendimento. Se esqueceu a senha, use “Esqueci minha senha” na entrada.</p>;
-  return <section className="assinatura-card"><h2>{administrador?'SAC — últimos 100 atendimentos':'Seus atendimentos'}</h2>
+  return <section className="sac-chamados"><h2>{administrador?'SAC — últimos 100 atendimentos':'Seus atendimentos'}</h2>
     {!administrador&&<form onSubmit={e=>void enviar(e)}><p>O atendimento é feito pelo Planeora. Não envie senhas, códigos de acesso ou dados completos de cartão.</p>
       <label className="campo">Assunto<select value={assunto} onChange={e=>definirAssunto(e.target.value)}>{['Suporte','Pagamento e cancelamento','Privacidade e dados','Reclamação'].map(a=><option key={a}>{a}</option>)}</select></label>
       <label className="campo">Mensagem<textarea required minLength={5} maxLength={2000} value={mensagem} onChange={e=>escrever(e.target.value)} /></label>
-      <button className="botao" disabled={ocupado||!usuario.emailVerified}>Enviar atendimento</button></form>}
-    <button className="botao" disabled={ocupado} onClick={()=>void carregar()}>Atualizar atendimentos</button>
+      <button className="botao botao-principal" disabled={ocupado||!usuario.emailVerified}>Enviar atendimento</button></form>}
+    <button className="botao botao-contorno" disabled={ocupado} onClick={()=>void carregar()}>Atualizar atendimentos</button>
     {erro&&<p role="alert">{erro}</p>}
     {!ocupado&&!itens.length&&!erro&&<p>Nenhum atendimento registrado.</p>}
     {itens.map(item=><article key={item.id} style={{overflowWrap:'anywhere',borderTop:'1px solid var(--borda)',paddingBlock:16}}><h3>{item.assunto} · {item.status}</h3><p>Protocolo: {item.id}</p>
       <p style={{whiteSpace:'pre-wrap'}}>{item.mensagem}</p><p style={{whiteSpace:'pre-wrap'}}><strong>Planeora: </strong>{item.resposta||'Aguardando atendimento.'}</p>
-      {administrador&&<><label className="campo">Resposta ao protocolo {item.id}<textarea maxLength={2000} value={respostas[item.id]??item.resposta} onChange={e=>responder({...respostas,[item.id]:e.target.value})}/></label><button className="botao" disabled={ocupado||!(respostas[item.id]??item.resposta).trim()} onClick={()=>void salvar(item)}>Publicar resposta</button></>}
+      {administrador&&<><label className="campo">Resposta ao protocolo {item.id}<textarea maxLength={2000} value={respostas[item.id]??item.resposta} onChange={e=>responder({...respostas,[item.id]:e.target.value})}/></label><button className="botao botao-principal" disabled={ocupado||!(respostas[item.id]??item.resposta).trim()} onClick={()=>void salvar(item)}>Publicar resposta</button></>}
     </article>)}
     {!administrador&&<p>Para complementar um pedido, abra outro atendimento citando o protocolo anterior. Acompanhe as respostas nesta página; não enviamos aviso por e-mail.</p>}
   </section>;
 }
 export function Atendimento() {
-  return <main className="documento-legal"><Link to="/">← Voltar ao Planeora</Link><h1>SAC do Planeora</h1><p>Ajuda, pagamentos, reclamações e privacidade em um só lugar.</p>
+  return <main className="documento-legal pagina-atendimento"><AcoesPublicas /><span className="publico-selo">CENTRAL DE AJUDA</span><h1>SAC do Planeora</h1><p>Ajuda, pagamentos, reclamações e privacidade em um só lugar.</p>
     <details><summary>Como funciona a mensalidade?</summary><p>20 inserções acumuladas de receitas e despesas são gratuitas. Cada bloco adicional de 30 custa R$20 por mês quando a contratação estiver habilitada. Apagar registros não devolve inserções.</p></details>
     <details><summary>Como cancelo ou peço reembolso?</summary><p>Cancele a renovação em Assinatura. Para dúvidas ou pedido de reembolso, abra um atendimento em “Pagamento e cancelamento”. O pedido será analisado conforme os direitos aplicáveis.</p></details>
     <details><summary>Como baixo ou excluo meus dados?</summary><p>Acesse <Link to="/privacidade">Privacidade e direitos</Link> para exportar dados e solicitar exclusão. A exclusão depende de verificação e eventuais obrigações legais de conservação.</p></details>

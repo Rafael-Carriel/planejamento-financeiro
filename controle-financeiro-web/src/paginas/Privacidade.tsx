@@ -1,3 +1,4 @@
+import { AcoesPublicas } from '../componentes/AcoesPublicas';
 import { useState, type ReactNode } from 'react';
 import { Link } from 'react-router-dom';
 import { ATENDIMENTO } from '../legal';
@@ -8,7 +9,7 @@ import './privacidade.css';
 function Secao({titulo,children}:{titulo:string;children:ReactNode}) { return <section><h2>{titulo}</h2>{children}</section>; }
 function Contato() { return <p>Atendimento do {ATENDIMENTO.nome}: <Link to={ATENDIMENTO.rota}>SAC — suporte, pagamentos e privacidade</Link>. Os pedidos e respostas ficam disponíveis na sua conta.</p>; }
 export function DocumentosLegais({tipo}:{tipo:'privacidade'|'termos'}) {
-  return <main className="documento-legal"><Link to="/">← Voltar ao Planeora</Link><h1>{tipo==='privacidade'?'Política de Privacidade':'Termos de Uso'}</h1>
+  return <main className="documento-legal"><AcoesPublicas /><h1>{tipo==='privacidade'?'Política de Privacidade':'Termos de Uso'}</h1>
     <p>Planeora · versão {VERSAO_LEGAL} · atualização em 20/10/2026</p><Contato />
     {tipo==='privacidade'?<>
       <Secao titulo="Dados e finalidades"><p>Tratamos nome, e-mail e identificador da conta para autenticação e atendimento; receitas, despesas, categorias, dívidas, objetivos e outros registros informados para organizar suas finanças. Não informe senhas bancárias, números de cartão ou dados de terceiros nas descrições.</p><p>Se a contratação estiver disponível, CPF/CNPJ e dados necessários à cobrança serão enviados ao Asaas. Os dados do cartão são preenchidos no ambiente do Asaas. O aplicativo não armazena sua senha em texto legível nem dados completos de cartão.</p></Secao>

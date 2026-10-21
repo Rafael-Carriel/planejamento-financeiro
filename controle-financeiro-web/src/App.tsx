@@ -1,3 +1,5 @@
+import { ProvedorDeTema } from './contextos/ContextoTema';
+import { ProvedorDeInstalacao } from './contextos/ContextoInstalacao';
 import { Atendimento } from './paginas/Atendimento';
 import { HashRouter, Navigate, Route, Routes } from 'react-router-dom';
 
@@ -74,7 +76,7 @@ function Portao() {
 
 export default function App() {
   return (
-    <HashRouter>
+    <ProvedorDeTema><ProvedorDeInstalacao><HashRouter>
       <ProvedorDeAutenticacao>
         <ProvedorDeMes>
           <ProvedorDeRepositorios>
@@ -87,6 +89,6 @@ export default function App() {
           </ProvedorDeRepositorios>
         </ProvedorDeMes>
       </ProvedorDeAutenticacao>
-    </HashRouter>
+    </HashRouter></ProvedorDeInstalacao></ProvedorDeTema>
   );
 }

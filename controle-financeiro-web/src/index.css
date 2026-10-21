@@ -29,6 +29,7 @@
   --tinta-fraca: #94a3b8;
 
   /* === Acentos === */
+  --link: #6d28d9;
   --destaque: #6d28d9;
   --destaque-medio: #7c3aed;
   --destaque-claro: #ede9fe;
@@ -116,8 +117,9 @@
 
   /* === Texto === */
   --tinta: #f1f5f9;
-  --tinta-media: #94a3b8;
-  --tinta-fraca: #64748b;
+  --tinta-media: #b1bfd2;
+  --tinta-fraca: #94a3b8;
+  --link: #c4b5fd;
 }
 
 /* Superfícies que usavam cor clara fixa no tema claro recebem o equivalente
@@ -215,7 +217,7 @@ p {
 }
 
 a {
-  color: var(--destaque);
+  color: var(--link);
   text-decoration: none;
   transition: color 0.15s ease;
 }
@@ -3165,3 +3167,39 @@ textarea.campo:focus {
     display: none !important;
   }
 }
+
+/* Planeora: entrance identity, installation and account settings. */
+.entrada-vitrine .marca{padding:0;gap:16px;position:relative;z-index:1}
+.entrada-logo{width:64px;height:64px;object-fit:contain;flex-shrink:0}
+.entrada-marca-texto{display:flex;flex-direction:column;gap:6px}
+.entrada-marca-texto .marca-nome{font-size:1.5rem;letter-spacing:-.04em}
+.entrada-marca-sub{font-size:.8rem;color:#b5c2d6;font-weight:400;letter-spacing:.025em}
+.entrada-caixa{max-width:440px;gap:24px}
+.entrada-boas-vindas{text-align:center}
+.entrada-boas-vindas h2{font-size:1.5rem;margin-bottom:8px}
+.entrada-boas-vindas p{color:var(--tinta-media);font-size:.9rem}
+.entrada-caixa .links-legais{margin-top:0;justify-content:center}
+.entrada-vitrine p{color:#b5c2d6}
+.instalar-app{border-top:1px solid var(--borda);padding-top:20px;width:100%;min-width:0}
+.instalar-app-botao{width:100%;display:flex;justify-content:center;align-items:center;gap:10px;font-size:.9rem}
+.instalar-app-legenda{font-size:.78rem;text-align:center;color:var(--tinta-media);margin:8px 0 0}
+.instalar-app-ajuda{padding:16px;margin-top:14px;background:var(--papel);border:1px solid var(--borda);border-radius:12px;font-size:.85rem;line-height:1.7;color:var(--tinta-media)}
+.instalar-app-ajuda h3{color:var(--tinta);margin-bottom:8px}
+.instalar-app-ajuda ul{padding-left:20px;margin:12px 0}.instalar-app-ajuda li{margin-bottom:8px}
+.conta-resumo{display:flex;gap:16px;align-items:center;margin-bottom:24px;min-width:0}
+.conta-avatar{width:56px;height:56px;border-radius:18px;display:grid;place-items:center;background:var(--gradiente-destaque);font-size:1.5rem;font-weight:700;color:#fff;flex-shrink:0}
+.conta-resumo>div{min-width:0}.conta-resumo strong{font-size:1.05rem;overflow-wrap:anywhere}
+.conta-resumo p{font-size:.85rem;color:var(--tinta-media);overflow-wrap:anywhere;margin:2px 0}
+.conta-verificacao{display:inline-flex;font-size:.75rem;color:var(--tinta-media)}
+.conta-abas{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;border-bottom:1px solid var(--borda);margin-bottom:24px}
+.conta-abas button{display:flex;align-items:center;justify-content:center;gap:8px;min-height:50px;padding:10px 6px;border:0;border-bottom:3px solid transparent;border-radius:10px 10px 0 0;background:transparent;color:var(--tinta-media);font:inherit;font-size:.85rem;font-weight:600;cursor:pointer}
+.conta-abas button[aria-selected=true]{color:var(--link);border-bottom-color:var(--link);background:var(--papel)}
+.conta-abas button:hover{background:var(--papel)}
+.conta-painel .campo>span:first-child{color:var(--tinta);font-weight:600}
+.conta-preferencias{margin-top:28px;padding-top:20px;border-top:1px solid var(--borda)}
+.conta-aparencia{display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:20px}
+.conta-aparencia p{font-size:.8rem;color:var(--tinta-media);margin-top:4px}
+.conta-aparencia .botao{font-size:.8rem;padding:9px 12px}
+@media(max-width:540px){.entrada-painel{padding:32px 20px}.entrada-vitrine{padding:28px 24px}.entrada-logo{width:56px;height:56px}.entrada-vitrine h1{font-size:2rem;max-width:16ch}.conta-abas button{flex-direction:column;gap:4px;font-size:.78rem}.modal-corpo{padding:20px}.conta-resumo{gap:12px}.conta-avatar{width:48px;height:48px}.conta-aparencia{gap:10px}.modal-rodape{padding:16px 20px}}
+
+[data-theme="dark"] a:hover{color:#ddd6fe}

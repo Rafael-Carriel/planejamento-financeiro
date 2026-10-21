@@ -1,3 +1,4 @@
+import { InstalarAplicativo } from '../componentes/InstalarAplicativo';
 import { useState, type FormEvent } from 'react';
 
 import { useAutenticacao } from '../contextos/ContextoAutenticacao';
@@ -98,13 +99,8 @@ export function Entrada() {
     <div className="tela-entrada">
       <section className="entrada-vitrine">
         <div className="marca">
-          <span className="marca-selo" aria-hidden="true">
-            R$
-          </span>
-          <span className="marca-nome">
-            Planeora
-            <span>entradas e saídas</span>
-          </span>
+          <img src="/logo.png" alt="Logo Planeora" className="entrada-logo" />
+          <div className="entrada-marca-texto"><span className="marca-nome">Planeora</span><span className="entrada-marca-sub">Seu dinheiro, com clareza.</span></div>
         </div>
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
@@ -137,13 +133,12 @@ export function Entrada() {
         </div>
 
         <p className="texto-miudo" style={{ color: '#7f8ca4' }}>
-          Os dados ficam na sua conta do Firebase, e as mesmas informações aparecem no aplicativo
-          do celular.
+          Suas finanças acompanham você. Acesse sua conta pelo celular ou computador.
         </p>
       </section>
 
       <section className="entrada-painel">
-        <div className="entrada-caixa">
+        <div className="entrada-caixa"><div className="entrada-boas-vindas"><h2>Bem-vindo ao Planeora</h2><p>Organize o presente. Planeje o que vem depois.</p></div>
           <div className="entrada-abas" role="group" aria-label="Entrar ou criar conta">
             <button
               type="button"
@@ -222,7 +217,7 @@ export function Entrada() {
               </button>
             ) : null}
           </form>
-          <nav className="links-legais" aria-label="Informações legais"><Link to="/atendimento">SAC e ajuda</Link><Link to="/politica-de-privacidade">Privacidade</Link><Link to="/termos-de-uso">Termos de Uso</Link></nav>
+          <InstalarAplicativo /><nav className="links-legais" aria-label="Informações legais"><Link to="/atendimento">SAC e ajuda</Link><Link to="/politica-de-privacidade">Privacidade</Link><Link to="/termos-de-uso">Termos de Uso</Link></nav>
         </div>
       </section>
     </div>

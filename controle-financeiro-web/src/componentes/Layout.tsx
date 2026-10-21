@@ -1,3 +1,4 @@
+import { useTema } from '../contextos/ContextoTema';
 import { useEffect, useRef, useState } from 'react';
 import { Link, NavLink, Outlet, useLocation } from 'react-router-dom';
 
@@ -40,19 +41,6 @@ const ITENS: ItemDeNavegacao[] = [
 
 const ITENS_PRINCIPAIS = ['/', '/receitas', '/despesas', '/recorrencias', '/dividas'];
 
-type Tema = 'light' | 'dark';
-
-/// Tema inicial: a escolha salva no localStorage vence; sem escolha salva,
-/// segue a preferência do sistema operacional (prefers-color-scheme).
-function lerTemaInicial(): Tema {
-  const salvo = localStorage.getItem('theme');
-  if (salvo === 'light' || salvo === 'dark') {
-    return salvo;
-  }
-  const prefereEscuro = window.matchMedia('(prefers-color-scheme: dark)').matches;
-  return prefereEscuro ? 'dark' : 'light';
-}
-
 export function Layout() {
   const { assinatura } = useAssinatura();
   const itens = assinatura?.admin ? [...ITENS, { para: '/admin', rotulo: 'Administração', rotuloCurto: 'Admin', icone: '⚙' }] : ITENS;
@@ -63,7 +51,7 @@ export function Layout() {
   const localAtual = useLocation();
   const inicial = nomeParaExibir.trim().charAt(0).toUpperCase() || '?';
 
-  const [tema, definirTema] = useState<Tema>(lerTemaInicial);
+  const {tema,alternarTema} = useTema();
 
   useEffect(() => { definirMaisAberto(false); }, [localAtual.pathname]);
   useEffect(() => {
@@ -74,19 +62,6 @@ export function Layout() {
     window.addEventListener('keydown', aoTeclar);
     return () => window.removeEventListener('keydown', aoTeclar);
   }, [maisAberto]);
-
-  // Aplica o tema no <html>: é o atributo data-theme que o CSS escuta
-  // para trocar os tokens de cor.
-  useEffect(() => {
-    document.documentElement.setAttribute('data-theme', tema);
-  }, [tema]);
-
-  /// Alterna claro/escuro e grava a escolha do usuário no localStorage.
-  function alternarTema() {
-    const proximo: Tema = tema === 'dark' ? 'light' : 'dark';
-    definirTema(proximo);
-    localStorage.setItem('theme', proximo);
-  }
 
   const itensPrincipais = itens.filter((item) => ITENS_PRINCIPAIS.includes(item.para));
   const itensSecundarios = itens.filter((item) => !ITENS_PRINCIPAIS.includes(item.para));
