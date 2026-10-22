@@ -55,3 +55,9 @@ test('histórico não troca o mês dos lembretes, ações cabem no celular e pus
   await page.evaluate(()=>window.scrollTo(0,0));
   if(process.env.PLANEJA_PREVIEW_DIR)await page.screenshot({path:join(process.env.PLANEJA_PREVIEW_DIR,'lembretes-celular.png'),fullPage:true});
 });
+test('vencimento de hoje não aparece como atrasado na dívida nem no lembrete',async({page})=>{
+  const hoje=sementes.map(d=>d.path.endsWith('/dividas/d1')?{...d,data:{...d.data,dataVencimento:ts('2026-10-21T03:00:00Z')}}:d);
+  await semearFirestore(page,hoje);await navegar(page,'/dividas');await page.reload();
+  await expect(page.getByText('Em aberto',{exact:true})).toBeVisible();await expect(page.getByText('Atrasada',{exact:true})).toHaveCount(0);
+  await navegar(page,'/lembretes');await expect(page.getByText('Dívida vence hoje: Cartão de teste',{exact:true})).toBeVisible();
+});
