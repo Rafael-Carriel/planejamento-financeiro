@@ -53,3 +53,25 @@ test('administrador vê acesso sem limite mesmo após 20 inserções',async({pag
   await expect(page.getByRole('progressbar',{name:'Inserções utilizadas'})).toHaveCount(0);
   await expect(page.getByText(/sem necessidade de contratar um plano/)).toBeVisible();
 });
+
+for (const situacao of ['PENDING', 'APPROVED']) {
+  test(`diagnóstico administrativo distingue conexão de cadastro ${situacao}`, async ({ page }) => {
+    await page.route('https://billing.example.invalid/functions/*', async route => {
+      const nome = route.request().url().split('/').at(-1);
+      const result = nome === 'planejaAsaasStatus'
+        ? { connected: true, environment: 'production', account: { general: situacao,
+          documentation: situacao, commercialInfo: 'APPROVED', bankAccountInfo: 'UNKNOWN' } }
+        : nome === 'planejaAdminUsers' ? { users: [], nextCursor: null }
+        : nome === 'planejaAdminPayments' ? { payments: [], nextCursor: null }
+        : { ...state, admin: true };
+      await route.fulfill({ json: { result } });
+    });
+    await autenticar(page); await navegar(page, '/admin');
+    await page.getByRole('button', { name: 'Verificar conexão com o Asaas' }).click();
+    const resultado = page.getByRole('status').filter({ hasText: 'Asaas conectado' });
+    await expect(resultado).toContainText(situacao === 'PENDING'
+      ? 'Cadastro geral: pendente' : 'Cadastro geral: aprovado');
+    await expect(resultado).toContainText('não comprova a liquidação de um pagamento');
+    if (situacao === 'PENDING') await expect(resultado).not.toContainText('Cadastro aprovado pelo Asaas');
+  });
+}

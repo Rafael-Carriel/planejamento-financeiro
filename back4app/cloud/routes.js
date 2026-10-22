@@ -360,9 +360,13 @@ function mount(app, { db, auth, asaas, env, now = () => new Date() }) {
     res.json({ users, nextCursor: page.size === 50 ? page.docs.at(-1).id : null });
   }));
   app.get('/billing/admin/asaas-status', requireUser, requireAdmin, route(async (_req, res) => {
-    // Read-only authentication check. Do not return customer data or create any financial object.
-    await asaas('/customers?limit=1');
-    res.json({ connected: true, environment: env.ASAAS_ENV });
+    // Connectivity alone does not establish that Asaas has approved this account.
+    // Return only approval states, never documents, identity data or credentials.
+    const status = await asaas('/myAccount/status');
+    const allowed = new Set(['APPROVED', 'PENDING', 'AWAITING_APPROVAL', 'REJECTED']);
+    const account = Object.fromEntries(['general', 'commercialInfo', 'documentation', 'bankAccountInfo']
+      .map(field => [field, allowed.has(status[field]) ? status[field] : 'UNKNOWN']));
+    res.json({ connected: true, environment: env.ASAAS_ENV, account });
   }));
   app.post('/billing/admin/activate', requireUser, requireAdmin, route(async (_req, res) => {
     await config.set({ enabled: true, usageMode: 'lifetime', activationId: randomUUID(), updatedAt: now() });

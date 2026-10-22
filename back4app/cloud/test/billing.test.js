@@ -78,13 +78,15 @@ test('somente o e-mail verificado do proprietário vincula o UID administrativo'
 });
 test('diagnóstico Asaas exige administrador e faz somente consulta sem expor clientes', async () => {
   const { api, calls } = await setup(async (path, method) => {
-    assert.equal(path, '/customers?limit=1'); assert.equal(method, 'GET');
-    return { data: [{ id: 'private-customer', name: 'Sensitive name' }] };
+    assert.equal(path, '/myAccount/status'); assert.equal(method, 'GET');
+    return { general: 'PENDING', documentation: 'PENDING', commercialInfo: 'APPROVED',
+      bankAccountInfo: 'unexpected private data', cpfCnpj: 'private-identifier' };
   });
   assert.equal((await api('get', '/admin/asaas-status')).status, 403);
   assert.equal(calls.length, 0);
   const result = await api('get', '/admin/asaas-status', undefined, 'owner');
-  assert.deepEqual(result.body, { connected: true, environment: 'sandbox' });
+  assert.deepEqual(result.body, { connected: true, environment: 'sandbox', account: {
+    general: 'PENDING', commercialInfo: 'APPROVED', documentation: 'PENDING', bankAccountInfo: 'UNKNOWN' } });
   assert.equal(calls.length, 1);
 });
 test('histórico existente é incluído na primeira contagem; administrador tem isenção', async () => {

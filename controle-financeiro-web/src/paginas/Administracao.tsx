@@ -23,8 +23,14 @@ export function Administracao() {
   async function verificarAsaas() {
     verificar(true);
     try {
-      const status = await chamarCobranca<{ connected: boolean; environment: string }>('/admin/asaas-status');
-      informarConexao(`Asaas conectado — ${status.environment === 'production' ? 'produção' : 'testes'}. A chave foi aceita em uma consulta sem cobrança. O ciclo de pagamento ainda precisa ser validado.`);
+      const status = await chamarCobranca<{ connected: boolean; environment: string;
+        account?: { general: string; documentation: string; commercialInfo: string; bankAccountInfo: string } }>('/admin/asaas-status');
+      const rotulos: Record<string, string> = { APPROVED: 'aprovado', PENDING: 'pendente',
+        AWAITING_APPROVAL: 'em análise', REJECTED: 'reprovado', UNKNOWN: 'não informado' };
+      const conta = status.account;
+      informarConexao(`Asaas conectado — ${status.environment === 'production' ? 'produção' : 'testes'}. ${conta
+        ? `Cadastro geral: ${rotulos[conta.general] || 'não informado'}. Documentação: ${rotulos[conta.documentation] || 'não informada'}. Dados comerciais: ${rotulos[conta.commercialInfo] || 'não informados'}.${conta.general !== 'APPROVED' ? ' Conclua as pendências em Minha conta no Asaas e aguarde a aprovação.' : ' Cadastro aprovado pelo Asaas.'}`
+        : 'A conexão foi confirmada, mas a situação cadastral ainda não foi informada.'} Esta consulta não cria cobranças e não comprova a liquidação de um pagamento.`);
     } catch (e) { informarConexao(e instanceof Error ? e.message : 'Não foi possível confirmar a conexão.'); }
     finally { verificar(false); }
   }
