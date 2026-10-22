@@ -33,7 +33,7 @@ export class LoginPage {
 
   /// Carrega o app do zero. É o único ponto dos testes que recarrega a página.
   async abrir(): Promise<void> {
-    await this.page.goto('/');
+    await this.page.goto('/#/entrar');
     await expect(this.titulo).toBeVisible();
   }
 

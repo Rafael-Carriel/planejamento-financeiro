@@ -12,7 +12,7 @@ async function contraste(page:import('@playwright/test').Page,selector:string){
 }
 for(const width of [320,390,768,1440]){
   test(`entrada, planos, perfil e SAC legíveis nos dois temas em ${width}px`,async({page})=>{
-    await page.setViewportSize({width,height:900});await page.goto('/');
+    await page.setViewportSize({width,height:900});await page.goto('/#/entrar');
     await expect(page.getByRole('img',{name:'Logo Planeora'})).toBeVisible();
     const marca=page.locator('.entrada-marca-texto');await expect(marca).toContainText('Planeora');
     await expect(page.getByRole('button',{name:'Instalar aplicativo',exact:true})).toBeVisible();
@@ -50,7 +50,7 @@ for(const width of [320,390,768,1440]){
 }
 
 test('instalação mostra instruções honestas e usa convite nativo quando disponível',async({page})=>{
-  await page.goto('/');const botao=page.getByRole('button',{name:'Instalar aplicativo',exact:true});await botao.click();
+  await page.goto('/#/entrar');const botao=page.getByRole('button',{name:'Instalar aplicativo',exact:true});await botao.click();
   await expect(page.getByText('Leve o Planeora com você')).toBeVisible();await expect(page.getByText('iPhone e iPad:',{exact:true})).toBeVisible();
   await page.evaluate(()=>{const evento=new Event('beforeinstallprompt',{cancelable:true});Object.assign(evento,{prompt:()=>{document.body.dataset.conviteInstalacao='aberto';return Promise.resolve();},userChoice:Promise.resolve({outcome:'dismissed'})});window.dispatchEvent(evento);});
   await botao.click();await expect(page.locator('body')).toHaveAttribute('data-convite-instalacao','aberto');

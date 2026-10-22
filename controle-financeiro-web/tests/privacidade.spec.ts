@@ -11,7 +11,7 @@ test('documentos legais são públicos e o nome é Planeora',async({page})=>{
   await expect(page).toHaveTitle('Planeora');
 });
 test('cadastro exige aceite expresso dos termos',async({page})=>{
-  await page.goto('/');
+  await page.goto('/#/entrar');
   await page.getByRole('button',{name:'Criar conta',exact:true}).click();
   await page.getByLabel('Nome',{exact:true}).fill('Pessoa Teste');
   await page.getByLabel('E-mail',{exact:true}).fill('teste@example.invalid');
@@ -35,7 +35,7 @@ test('titular baixa dados e registra pedido sem apagar a conta',async({page})=>{
 });
 
 test('cadastro registra versão aceita e preserva nome e data após recarregar',async({page})=>{
-  await page.goto('/');
+  await page.goto('/#/entrar');
   await page.getByRole('button',{name:'Criar conta',exact:true}).click();
   await page.getByLabel('Nome',{exact:true}).fill('Pessoa Cadastro');
   await page.getByLabel('E-mail',{exact:true}).fill('cadastro@example.invalid');

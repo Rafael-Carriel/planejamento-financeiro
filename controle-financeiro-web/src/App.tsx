@@ -2,7 +2,8 @@ import { ProvedorDeLembretes } from './contextos/ContextoLembretes';
 import { ProvedorDeTema } from './contextos/ContextoTema';
 import { ProvedorDeInstalacao } from './contextos/ContextoInstalacao';
 import { Atendimento } from './paginas/Atendimento';
-import { HashRouter, Navigate, Route, Routes } from 'react-router-dom';
+import { HashRouter, Navigate, Route, Routes, useLocation } from 'react-router-dom';
+import { Apresentacao } from './paginas/Apresentacao';
 
 import { Layout } from './componentes/Layout';
 import { Carregando } from './componentes/Estados';
@@ -41,9 +42,10 @@ import { Instalacao } from './paginas/Instalacao';
 /// consulta ao Firestore sai sem `uid` e sem permissão.
 function Portao() {
   const { usuario, carregando } = useAutenticacao();
+  const { pathname } = useLocation();
 
   if (carregando) return <Carregando mensagem="Verificando sua sessão…" />;
-  if (!usuario) return <Entrada />;
+  if (!usuario) return pathname === '/' ? <Apresentacao /> : <Entrada key={pathname} modoInicial={pathname === '/criar-conta' ? 'criar' : 'entrar'} />;
 
   return (
     <ProvedorDeAssinatura key={usuario.uid}>
@@ -84,6 +86,7 @@ export default function App() {
         <ProvedorDeMes>
           <ProvedorDeRepositorios>
             <Routes>
+              <Route path="/conheca" element={<Apresentacao />} />
               <Route path="/politica-de-privacidade" element={<DocumentosLegais tipo="privacidade" />} />
               <Route path="/atendimento" element={<Atendimento />} />
               <Route path="/termos-de-uso" element={<DocumentosLegais tipo="termos" />} />

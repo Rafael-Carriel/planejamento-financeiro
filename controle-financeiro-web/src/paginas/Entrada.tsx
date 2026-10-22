@@ -21,10 +21,10 @@ const EXEMPLO = [
 
 type Modo = 'entrar' | 'criar';
 
-export function Entrada() {
+export function Entrada({ modoInicial = 'entrar' }: { modoInicial?: Modo }) {
   const { entrar, criarConta, redefinirSenha } = useAutenticacao();
 
-  const [modo, definirModo] = useState<Modo>('entrar');
+  const [modo, definirModo] = useState<Modo>(modoInicial);
   const [nome, definirNome] = useState('');
   const [email, definirEmail] = useState('');
   const [senha, definirSenha] = useState('');
@@ -217,7 +217,7 @@ export function Entrada() {
               </button>
             ) : null}
           </form>
-          <InstalarAplicativo /><nav className="links-legais" aria-label="Informações legais"><Link to="/atendimento">SAC e ajuda</Link><Link to="/politica-de-privacidade">Privacidade</Link><Link to="/termos-de-uso">Termos de Uso</Link></nav>
+          <InstalarAplicativo /><nav className="links-legais" aria-label="Informações legais"><Link to="/conheca">Conhecer o Planeora</Link><Link to="/atendimento">SAC e ajuda</Link><Link to="/politica-de-privacidade">Privacidade</Link><Link to="/termos-de-uso">Termos de Uso</Link></nav>
         </div>
       </section>
     </div>

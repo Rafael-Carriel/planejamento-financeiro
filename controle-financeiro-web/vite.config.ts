@@ -54,7 +54,7 @@ export default defineConfig(({command,mode}) => {
       workbox: {
         // Cleanup for old browser caches and retired push subscriptions; no messaging SDK.
         importScripts: ['./firebase-messaging-sw.js'],
-        globPatterns: ['**/*.{html,js,css,ico,png,svg,woff2}'],
+        globPatterns: ['**/*.{html,js,css,ico,png,svg,webp,woff2}'],
         navigateFallback: 'index.html',
         navigateFallbackDenylist: [/^\/api/],
         runtimeCaching: [
