@@ -58,3 +58,18 @@ test('instalação mostra instruções honestas e usa convite nativo quando disp
   await page.evaluate(()=>window.dispatchEvent(new Event('appinstalled')));
   await expect(page.getByRole('button',{name:'Aplicativo instalado'})).toBeDisabled();
 });
+
+for(const width of [320,1440]){
+  test(`instalação acessível no painel autenticado em ${width}px`,async({page})=>{
+    await page.setViewportSize({width,height:900});await autenticar(page);
+    const chamada=page.getByRole('region',{name:'Aplicativo Planeora'});
+    await expect(chamada.getByText('Tenha o Planeora no seu dispositivo')).toBeVisible();
+    await chamada.getByRole('button',{name:'Instalar aplicativo',exact:true}).click();
+    await expect(chamada.getByText('iPhone e iPad:',{exact:true})).toBeVisible();
+    await expect(chamada.getByText('Computador:',{exact:true})).toBeVisible();
+    expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
+    if(process.env.PLANEJA_PREVIEW_DIR)await page.screenshot({path:join(process.env.PLANEJA_PREVIEW_DIR,`instalar-planeora-${width}.png`)});
+    await page.evaluate(()=>window.dispatchEvent(new Event('appinstalled')));
+    await expect(chamada).toHaveCount(0);
+  });
+}
