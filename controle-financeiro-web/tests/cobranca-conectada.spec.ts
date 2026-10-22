@@ -46,3 +46,10 @@ test('checkout exige aceite e disponibiliza somente link seguro retornado', asyn
   await expect(page.getByRole('link', { name: /Abrir pagamento no Asaas/ })).toHaveAttribute('href','https://sandbox.asaas.com/i/qa');
   expect(checkout).toMatchObject({blocks:2,accepted:true,cpfCnpj:'24971563792'});
 });
+test('administrador vê acesso sem limite mesmo após 20 inserções',async({page})=>{
+  await page.route('https://billing.example.invalid/functions/*',async route=>{await route.fulfill({json:{result:{...state,admin:true,count:50}}});});
+  await autenticar(page);await navegar(page,'/assinatura');
+  await expect(page.getByRole('heading',{name:'Sem limite de inserções'})).toBeVisible();
+  await expect(page.getByRole('progressbar',{name:'Inserções utilizadas'})).toHaveCount(0);
+  await expect(page.getByText(/sem necessidade de contratar um plano/)).toBeVisible();
+});

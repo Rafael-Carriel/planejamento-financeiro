@@ -45,15 +45,15 @@ export function Assinatura() {
     <div className="assinatura-resumo">
       <section className="assinatura-card">
         <span className="assinatura-selo">Seu consumo acumulado</span>
-        <h2>{a ? `${a.count} de ${a.limit}` : 'Até 20 grátis'}</h2>
+        <h2>{a?.admin ? 'Sem limite de inserções' : a ? `${a.count} de ${a.limit}` : 'Até 20 grátis'}</h2>
         <p>Inserções de receitas e despesas. A contagem não reinicia no mês; excluir um lançamento não devolve uma inserção.</p>
-        {a && <progress value={Math.min(a.count, a.limit)} max={a.limit} aria-label="Inserções utilizadas" />}
-        <dl className="assinatura-detalhes">
+        {a && !a.admin && <progress value={Math.min(a.count, a.limit)} max={a.limit} aria-label="Inserções utilizadas" />}
+        {a?.subscriptionId ? <dl className="assinatura-detalhes">
           <div><dt>Mensalidade contratada</dt><dd>{a ? moeda(a.monthlyPrice) : '—'}</dd></div>
           <div><dt>Acesso pago válido até</dt><dd>{a?.validUntil ? new Date(a.validUntil).toLocaleDateString('pt-BR') : 'Sem período pago ativo'}</dd></div>
           <div><dt>Renovação</dt><dd>{a?.subscriptionId && !a.canceled ? 'Mensal' : 'Sem renovação ativa'}</dd></div>
-        </dl>
-        {a?.admin && <p>Como administrador, você pode cadastrar lançamentos sem limite.</p>}
+        </dl> : <p>Sem mensalidade contratada ou renovação ativa.</p>}
+        {a?.admin && <p>Você tem acesso de administrador. {a.count} inserções contabilizadas, sem necessidade de contratar um plano.</p>}
         {a?.subscriptionId && <details className="assinatura-cancelar"><summary>Cancelar renovação</summary>
           <p>As próximas mensalidades serão canceladas. Seu histórico permanece disponível e o limite volta a 20 após o fim do período pago.</p>
           <button className="botao" disabled={ocupado} onClick={() => void cancelar()}>Confirmar cancelamento</button>
