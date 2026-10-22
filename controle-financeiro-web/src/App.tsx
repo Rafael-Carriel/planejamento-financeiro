@@ -1,3 +1,4 @@
+import { ProvedorDeLembretes } from './contextos/ContextoLembretes';
 import { ProvedorDeTema } from './contextos/ContextoTema';
 import { ProvedorDeInstalacao } from './contextos/ContextoInstalacao';
 import { Atendimento } from './paginas/Atendimento';
@@ -46,7 +47,7 @@ function Portao() {
   return (
     <ProvedorDeAssinatura key={usuario.uid}>
     <ProvedorDeDados>
-      <ProvedorDeLancamento>
+      <ProvedorDeLembretes><ProvedorDeLancamento>
         <Routes>
           <Route element={<Layout />}>
             <Route index element={<Painel />} />
@@ -68,7 +69,7 @@ function Portao() {
             <Route path="*" element={<Navigate to="/" replace />} />
           </Route>
         </Routes>
-      </ProvedorDeLancamento>
+      </ProvedorDeLancamento></ProvedorDeLembretes>
     </ProvedorDeDados>
     </ProvedorDeAssinatura>
   );

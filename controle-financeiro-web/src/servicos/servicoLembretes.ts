@@ -10,6 +10,7 @@ import {
   query,
   serverTimestamp,
   updateDoc,
+  runTransaction,
   type DocumentData,
   type QueryDocumentSnapshot,
 } from 'firebase/firestore';
@@ -41,6 +42,7 @@ export interface Lembrete {
   data: Date;
   lido: boolean;
   criadoEm: Date | null;
+  descartado?: boolean;
 }
 
 /// O que é preciso para criar um lembrete. Sem `id`: quem cria ainda não tem
@@ -77,6 +79,7 @@ function paraLembrete(documento: QueryDocumentSnapshot<DocumentData>): Lembrete 
     data,
     lido: dados.lido === true,
     criadoEm: dados.criadoEm instanceof Timestamp ? dados.criadoEm.toDate() : null,
+    descartado: dados.descartado === true,
   };
 }
 
@@ -142,4 +145,13 @@ export async function marcarComoLido(uid: string, id: string): Promise<void> {
 
 export async function excluirLembrete(uid: string, id: string): Promise<void> {
   await deleteDoc(doc(bancoDeDados, 'usuarios', uid, 'lembretes', id));
+}
+
+export async function registrarEstadoLembrete(uid:string,lembrete:Lembrete,descartado:boolean):Promise<void>{
+  const referencia=doc(bancoDeDados,'usuarios',uid,'lembretes',lembrete.id);
+  await runTransaction(bancoDeDados,async tx=>{
+    const existente=await tx.get(referencia);
+    if(existente.exists())tx.update(referencia,{lido:true,descartado:descartado||existente.data().descartado===true,atualizadoEm:serverTimestamp()});
+    else tx.set(referencia,{...paraFirestore(lembrete),lido:true,descartado,criadoEm:serverTimestamp()});
+  });
 }

@@ -1,16 +1,11 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useState } from 'react';
 
 import { CabecalhoDaPagina } from '../componentes/CabecalhoDaPagina';
 import { Carregando, EstadoVazio, FaixaDeErro } from '../componentes/Estados';
-import { useAutenticacao } from '../contextos/ContextoAutenticacao';
 import { formatarData } from '../utilitarios/formatadores';
-import {
-  excluirLembrete,
-  marcarComoLido,
-  observarLembretes,
-  type Lembrete,
-  type TipoLembrete,
-} from '../servicos/servicoLembretes';
+import { useLembretes } from '../contextos/ContextoLembretes';
+import type { Lembrete, TipoLembrete } from '../servicos/servicoLembretes';
+import { Link } from 'react-router-dom';
 
 /// Fila de avisos do usuário: contas que venceu, dívidas atrasadas, orçamento
 /// estourado. Não mexe no dinheiro — só chama atenção para o que precisa dela.
@@ -29,85 +24,15 @@ const APARENCIA_POR_TIPO: Record<
 };
 
 export function Lembretes() {
-  const { usuario } = useAutenticacao();
-  const uid = usuario?.uid ?? null;
-
-  const [lembretes, definirLembretes] = useState<Lembrete[]>([]);
-  const [carregando, definirCarregando] = useState(true);
-  const [erro, definirErro] = useState<string | null>(null);
-  // Id do lembrete com uma ação em andamento, para travar só os botões dele.
-  const [processando, definirProcessando] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (!uid) return;
-
-    let vivo = true;
-    definirCarregando(true);
-    definirErro(null);
-
-    const encerrar = observarLembretes(
-      uid,
-      (lista) => {
-        if (!vivo) return;
-        definirLembretes(lista);
-        definirCarregando(false);
-      },
-      () => {
-        if (!vivo) return;
-        definirErro('Não deu para carregar os lembretes.');
-        definirCarregando(false);
-      },
-    );
-
-    return () => {
-      vivo = false;
-      encerrar();
-    };
-  }, [uid]);
-
-  // --- Derivados ---
-
-  const naoLidos = useMemo(
-    () => lembretes.filter((lembrete) => !lembrete.lido),
-    [lembretes],
-  );
-
-  // Não lidos primeiro; dentro de cada grupo, a ordem que veio do Firestore
-  // (mais recente no topo). A ordenação do `sort` é estável, então preservar
-  // a ordem original dentro dos grupos é garantido.
-  const ordenados = useMemo(
-    () => [...lembretes].sort((a, b) => Number(a.lido) - Number(b.lido)),
-    [lembretes],
-  );
-
-  // --- Ações ---
-
-  async function marcar(lembrete: Lembrete) {
-    if (!uid || lembrete.lido || processando !== null) return;
-
-    definirProcessando(lembrete.id);
-    try {
-      await marcarComoLido(uid, lembrete.id);
-    } catch {
-      definirErro('Não deu para marcar o lembrete como lido.');
-    } finally {
-      definirProcessando(null);
-    }
+  const {lembretes,naoLidos,carregando,erro:erroDeDados,marcar:marcarLido,dispensar}=useLembretes();
+  const [erro,definirErro]=useState<string|null>(null);
+  const [processando,definirProcessando]=useState<string|null>(null);
+  async function agir(lembrete:Lembrete,descartar:boolean){
+    if(processando)return;definirProcessando(lembrete.id);definirErro(null);
+    try{await (descartar?dispensar(lembrete):marcarLido(lembrete));}
+    catch{definirErro('Não foi possível atualizar o lembrete. Tente novamente.');}
+    finally{definirProcessando(null);}
   }
-
-  async function excluir(lembrete: Lembrete) {
-    if (!uid || processando !== null) return;
-
-    definirProcessando(lembrete.id);
-    try {
-      await excluirLembrete(uid, lembrete.id);
-    } catch {
-      definirErro('Não deu para excluir o lembrete.');
-    } finally {
-      definirProcessando(null);
-    }
-  }
-
   return (
     <>
       <CabecalhoDaPagina
@@ -117,11 +42,12 @@ export function Lembretes() {
       />
 
       <div className="pagina">
-        {erro ? <FaixaDeErro mensagem={erro} /> : null}
+        {(erro||erroDeDados) ? <FaixaDeErro mensagem={erro||erroDeDados||''} /> : null}
+        <p className="texto-apoio">Avisos dentro do Planeora, atualizados ao abrir o sistema e enquanto ele estiver em uso. Contas recorrentes do mês atual e dos próximos 3 dias; dívidas com saldo pendente e orçamento do mês atual. Não enviamos notificações fora do aplicativo.</p>
 
         {carregando ? (
           <Carregando mensagem="Carregando seus lembretes…" />
-        ) : lembretes.length === 0 ? (
+        ) : lembretes.length === 0 && !erroDeDados ? (
           <div className="cartao">
             <div className="cartao-corpo">
               <EstadoVazio
@@ -134,16 +60,16 @@ export function Lembretes() {
         ) : (
           <section className="cartao">
             <div className="cartao-cabeca">
-              <h2>Notificações</h2>
+              <h2>Seus lembretes</h2>
               <span className="texto-miudo">
-                {naoLidos.length === 0
+                {naoLidos === 0
                   ? `${lembretes.length} ${lembretes.length === 1 ? 'lembrete' : 'lembretes'}, todos lidos`
-                  : `${naoLidos.length} não ${naoLidos.length === 1 ? 'lido' : 'lidos'} de ${lembretes.length}`}
+                  : `${naoLidos} não ${naoLidos === 1 ? 'lido' : 'lidos'} de ${lembretes.length}`}
               </span>
             </div>
 
-            <ul className="lista-lancamentos">
-              {ordenados.map((lembrete) => {
+            <ul className="lista-lancamentos lista-lembretes">
+              {lembretes.map((lembrete) => {
                 const aparencia = APARENCIA_POR_TIPO[lembrete.tipo];
                 const ocupado = processando === lembrete.id;
 
@@ -166,7 +92,7 @@ export function Lembretes() {
                     <div className="lancamento-textos">
                       <div className="lancamento-descricao">{lembrete.titulo}</div>
                       <div className="lancamento-meta">
-                        <span>{formatarData(lembrete.data)}</span>
+                        <span>{formatarData(lembrete.data)}</span>{lembrete.lido&&<span className="selo-situacao selo-sem-limite">Lido</span>}
                         {lembrete.descricao ? (
                           <span>· {lembrete.descricao}</span>
                         ) : null}
@@ -176,13 +102,14 @@ export function Lembretes() {
                       </div>
                     </div>
 
-                    <div className="lancamento-acoes">
+                    <div className="lancamento-acoes lembrete-acoes">
+                      <Link className="botao-texto" to={lembrete.tipo==='recorrencia'?'/recorrencias':lembrete.tipo==='divida'?'/dividas':lembrete.tipo==='orcamento'?'/planejamento':'/'}>Ver detalhes</Link>
                       {!lembrete.lido ? (
                         <button
                           type="button"
                           className="botao-texto"
-                          onClick={() => void marcar(lembrete)}
-                          disabled={ocupado}
+                          onClick={() => void agir(lembrete,false)}
+                          disabled={processando!==null}
                         >
                           {ocupado ? 'Marcando…' : 'Marcar como lido'}
                         </button>
@@ -190,10 +117,10 @@ export function Lembretes() {
                       <button
                         type="button"
                         className="botao-texto acao-excluir-lembrete"
-                        onClick={() => void excluir(lembrete)}
-                        disabled={ocupado}
+                        onClick={() => void agir(lembrete,true)}
+                        disabled={processando!==null}
                       >
-                        {ocupado ? 'Excluindo…' : 'Excluir'}
+                        {ocupado ? 'Atualizando…' : 'Dispensar'}
                       </button>
                     </div>
                   </li>

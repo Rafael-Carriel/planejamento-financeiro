@@ -13,9 +13,9 @@ import {
 } from 'firebase/auth';
 import { doc, getDoc, serverTimestamp, setDoc, updateDoc, runTransaction } from 'firebase/firestore';
 import { VERSAO_LEGAL } from '../legal';
-import { deleteToken, getMessaging, isSupported } from 'firebase/messaging';
 
-import { app, auth, bancoDeDados } from '../firebase/config';
+
+import { auth, bancoDeDados } from '../firebase/config';
 import type { Perfil } from '../tipos';
 
 /// Autenticação por e-mail e senha e o documento de perfil que acompanha cada
@@ -62,11 +62,6 @@ export async function criarConta(
 }
 
 export async function sair(): Promise<void> {
-  // Invalidate this browser's push address before another person signs in.
-  if (typeof Notification !== 'undefined' && Notification.permission === 'granted') {
-    try { if (await isSupported()) await deleteToken(getMessaging(app)); }
-    catch { /* Sign-out must remain available when push services are unavailable. */ }
-  }
   await signOut(auth);
 }
 

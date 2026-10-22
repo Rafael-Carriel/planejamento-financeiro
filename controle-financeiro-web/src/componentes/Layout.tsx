@@ -4,7 +4,7 @@ import { Link, NavLink, Outlet, useLocation } from 'react-router-dom';
 
 import { useAutenticacao } from '../contextos/ContextoAutenticacao';
 import { BotaoLembrete } from './BotaoLembrete';
-import { BotaoNotificacao } from './BotaoNotificacao';
+
 import { ModalDaConta } from './ModalDaConta';
 import { useAssinatura } from '../contextos/ContextoAssinatura';
 
@@ -131,7 +131,7 @@ export function Layout() {
             {tema === 'dark' ? 'Tema claro' : 'Tema escuro'}
           </button>
 
-          <BotaoNotificacao comRotulo />
+          <BotaoLembrete comRotulo />
 
           <button
             type="button"
@@ -154,7 +154,7 @@ export function Layout() {
           </div>
           <div className="tira-conta-acoes">
             <BotaoLembrete />
-            <BotaoNotificacao />
+
             <button
               type="button"
               className="botao-tema"

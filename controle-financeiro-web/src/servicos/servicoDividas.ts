@@ -10,6 +10,7 @@ import {
   query,
   serverTimestamp,
   updateDoc,
+  runTransaction,
   type DocumentData,
   type QueryDocumentSnapshot,
 } from 'firebase/firestore';
@@ -98,8 +99,15 @@ export async function registrarPagamento(
   id: string,
   valorPago: number,
 ): Promise<void> {
-  await updateDoc(doc(bancoDeDados, 'usuarios', uid, 'dividas', id), {
-    valorPago: Math.abs(valorPago),
-    atualizadoEm: serverTimestamp(),
+  const centavos=Math.round(valorPago*100);
+  if(!Number.isFinite(centavos)||centavos<=0)throw new Error('Informe um pagamento maior que zero.');
+  const referencia=doc(bancoDeDados,'usuarios',uid,'dividas',id);
+  await runTransaction(bancoDeDados,async tx=>{
+    const documento=await tx.get(referencia);
+    if(!documento.exists())throw new Error('Dívida não encontrada.');
+    const dados=documento.data();
+    const total=Math.round(Number(dados.valor)*100),pago=Math.round(Number(dados.valorPago??0)*100);
+    if(!Number.isFinite(total)||!Number.isFinite(pago)||centavos>total-pago)throw new Error('O pagamento ultrapassa o saldo restante. Atualize e confira a dívida.');
+    tx.update(referencia,{valorPago:(pago+centavos)/100,atualizadoEm:serverTimestamp()});
   });
 }

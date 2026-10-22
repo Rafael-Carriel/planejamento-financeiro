@@ -13,7 +13,7 @@ Versão: 20/10/2026. Este documento descreve procedimentos e pendências operaci
 | Solicitações e mensagens de privacidade | Exercício de direitos | `solicitacoesPrivacidade` | Titular e proprietário verificado |
 | Preferências e cache da interface | Tema, sessão e disponibilidade | Navegador | Pessoa com acesso ao dispositivo |
 
-Base inicial: execução do contrato para dados necessários ao serviço, obrigações legais e exercício de direitos para conservação específica. Notificações dependem da permissão opcional do navegador. O aceite de termos não é consentimento abrangente para usos incompatíveis. Avaliar novas bases antes de adicionar anúncios, análise comportamental, dados de menores ou finalidades adicionais.
+Base inicial: execução do contrato para dados necessários ao serviço, obrigações legais e exercício de direitos para conservação específica. Não há envio de notificações push nesta versão; os lembretes são internos ao aplicativo. O aceite de termos não é consentimento abrangente para usos incompatíveis. Avaliar novas bases antes de adicionar anúncios, análise comportamental, dados de menores ou finalidades adicionais.
 
 ## Atendimento de direitos
 

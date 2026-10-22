@@ -162,3 +162,12 @@ test('SAC isola protocolos e permite resposta somente do administrador verificad
   await assertFails(updateDoc(doc(owner,'chamadosAtendimento/protocolo'),{uid:'user-b'}));
   await assertFails(deleteDoc(ref));
 });
+test('lembretes privados aceitam leitura/dispensa sem ampliar acesso nem alterar cobrança',async()=>{
+  const dono=env.authenticatedContext('user-a').firestore();const outro=env.authenticatedContext('user-b').firestore();
+  const aviso={titulo:'Conta pendente',descricao:null,tipo:'recorrencia',data:Timestamp.fromDate(now),lido:false,criadoEm:serverTimestamp(),atualizadoEm:serverTimestamp()};
+  const ref=doc(dono,'usuarios/user-a/lembretes/auto-v1-teste');
+  await assertSucceeds(setDoc(ref,aviso));await assertSucceeds(updateDoc(ref,{lido:true,descartado:true,atualizadoEm:serverTimestamp()}));
+  await assertSucceeds(getDoc(ref));await assertFails(getDoc(doc(outro,'usuarios/user-a/lembretes/auto-v1-teste')));
+  await assertFails(updateDoc(ref,{descartado:'sim'}));await assertFails(setDoc(doc(dono,'usuarios/user-b/lembretes/invasao'),aviso));
+  await assertFails(setDoc(doc(dono,'billingSystem/config'),{enabled:false}));
+});

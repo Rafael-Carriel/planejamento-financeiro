@@ -371,7 +371,7 @@ service cloud.firestore {
     function lembreteValida() {
       let dados = request.resource.data;
       return dados.keys().hasOnly([
-            'titulo', 'descricao', 'tipo', 'data', 'lido', 'criadoEm', 'atualizadoEm',
+            'titulo', 'descricao', 'tipo', 'data', 'lido', 'criadoEm', 'atualizadoEm', 'descartado',
           ])
         && dados.titulo is string
         && dados.titulo.size() > 0
@@ -382,7 +382,8 @@ service cloud.firestore {
         )
         && dados.tipo in ['recorrencia', 'divida', 'orcamento', 'sistema']
         && dados.data is timestamp
-        && dados.lido is bool;
+        && dados.lido is bool
+        && (!('descartado' in dados) || dados.descartado is bool);
     }
 
     // Reserva de emergência: documento único com meta e valor atual.

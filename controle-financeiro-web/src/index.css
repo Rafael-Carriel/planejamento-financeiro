@@ -3203,3 +3203,7 @@ textarea.campo:focus {
 @media(max-width:540px){.entrada-painel{padding:32px 20px}.entrada-vitrine{padding:28px 24px}.entrada-logo{width:56px;height:56px}.entrada-vitrine h1{font-size:2rem;max-width:16ch}.conta-abas button{flex-direction:column;gap:4px;font-size:.78rem}.modal-corpo{padding:20px}.conta-resumo{gap:12px}.conta-avatar{width:48px;height:48px}.conta-aparencia{gap:10px}.modal-rodape{padding:16px 20px}}
 
 [data-theme="dark"] a:hover{color:#ddd6fe}
+
+.botao-lembrete{cursor:pointer}.rodape-barra .botao-lembrete .selo-contador{position:static;margin-left:auto}.lista-lembretes .lancamento{grid-template-columns:40px minmax(0,1fr);align-items:start}.lista-lembretes .lancamento-descricao{white-space:normal;overflow-wrap:anywhere}.lembrete-acoes{grid-column:2;display:flex;opacity:1;flex-wrap:wrap;gap:12px}.lembrete-acoes .botao-texto{font-size:.8rem;min-height:36px}.lista-lembretes .lancamento-meta{flex-wrap:wrap;overflow-wrap:anywhere}
+
+.lista-lembretes .lancamento-meta{white-space:normal;overflow:visible;color:var(--tinta-media);line-height:1.7}.lista-lembretes .lancamento-apagado{opacity:1;background:var(--papel)}
