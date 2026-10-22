@@ -4,7 +4,6 @@ import { Link, NavLink, Outlet, useLocation } from 'react-router-dom';
 
 import { useAutenticacao } from '../contextos/ContextoAutenticacao';
 import { BotaoLembrete } from './BotaoLembrete';
-import { InstalarAplicativo } from './InstalarAplicativo';
 
 import { ModalDaConta } from './ModalDaConta';
 import { useAssinatura } from '../contextos/ContextoAssinatura';
@@ -22,6 +21,7 @@ interface ItemDeNavegacao {
 const ITENS: ItemDeNavegacao[] = [
   { para: '/atendimento', rotulo: 'SAC e ajuda', rotuloCurto: 'SAC', icone: '?' },
   { para: '/', rotulo: 'Painel', rotuloCurto: 'Painel', icone: '◧' },
+  { para: '/instalar', rotulo: 'Instalar aplicativo', rotuloCurto: 'Instalar', icone: '↓' },
   { para: '/receitas', rotulo: 'Receitas', rotuloCurto: 'Receitas', icone: '↑' },
   { para: '/despesas', rotulo: 'Despesas', rotuloCurto: 'Despesas', icone: '↓' },
   // "Fixas" no celular: cabe na barra de baixo e é como se fala das contas que
@@ -177,7 +177,6 @@ export function Layout() {
 
         <main className="conteudo" role="main">
           <div className="conteudo-conteiner">
-            <InstalarAplicativo destaque />
             {assinatura?.enabled && !assinatura.admin && assinatura.count >= assinatura.limit && <div className="assinatura-aviso" role="status">
               Você utilizou suas {assinatura.limit} inserções. <Link to="/assinatura">Libere mais 30 na sua assinatura.</Link>
             </div>}

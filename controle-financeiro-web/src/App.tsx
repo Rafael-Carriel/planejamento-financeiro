@@ -29,6 +29,7 @@ import { Assinatura } from './paginas/Assinatura';
 import { Administracao } from './paginas/Administracao';
 import { ProvedorDeAssinatura } from './contextos/ContextoAssinatura';
 import { DocumentosLegais, Privacidade } from './paginas/Privacidade';
+import { Instalacao } from './paginas/Instalacao';
 
 /// Montagem do app.
 ///
@@ -51,6 +52,7 @@ function Portao() {
         <Routes>
           <Route element={<Layout />}>
             <Route index element={<Painel />} />
+            <Route path="instalar" element={<Instalacao />} />
             <Route path="receitas" element={<Receitas />} />
             <Route path="despesas" element={<Despesas />} />
             <Route path="recorrencias" element={<Recorrencias />} />
