@@ -12,6 +12,9 @@ import type { User } from 'firebase/auth';
 import {
   criarConta as criarContaNoFirebase,
   entrar as entrarNoFirebase,
+  entrarComGoogle,
+  temAceiteLegal,
+  registrarAceiteLegal,
   enviarRedefinicaoDeSenha,
   enviarVerificacaoEmail,
   garantirPerfil,
@@ -36,6 +39,9 @@ interface ValorDaAutenticacao {
   carregando: boolean;
   nomeParaExibir: string;
   entrar: (email: string, senha: string) => Promise<void>;
+  entrarComGoogle: () => Promise<void>;
+  aceiteGooglePendente: boolean;
+  confirmarAceiteGoogle: () => Promise<void>;
   criarConta: (nome: string, email: string, senha: string) => Promise<void>;
   sair: () => Promise<void>;
   redefinirSenha: (email: string) => Promise<void>;
@@ -52,18 +58,31 @@ export function ProvedorDeAutenticacao({ children }: { children: ReactNode }) {
   const [usuario, definirUsuario] = useState<User | null>(null);
   const [perfil, definirPerfil] = useState<Perfil | null>(null);
   const [carregando, definirCarregando] = useState(true);
+  const [aceiteGooglePendente, definirAceiteGooglePendente] = useState(false);
 
   useEffect(() => {
+    let ativo = true, revisao = 0;
     const encerrar = observarUsuario((usuarioAtual) => {
-      definirUsuario(usuarioAtual);
-      definirCarregando(false);
+      const atual = ++revisao;
+      definirCarregando(true);
+      void (async () => {
+        let pendente = false;
+        if (usuarioAtual?.providerData.some(provedor => provedor.providerId === 'google.com')) {
+          try { pendente = !(await temAceiteLegal(usuarioAtual.uid)); }
+          catch { pendente = true; }
+        }
+        if (!ativo || atual !== revisao) return;
+        definirUsuario(usuarioAtual);
+        definirAceiteGooglePendente(pendente);
+        definirCarregando(false);
+      })();
     });
-    return encerrar;
+    return () => { ativo = false; encerrar(); };
   }, []);
 
-  const carregarPerfil = useCallback(async (uid: string, email: string) => {
+  const carregarPerfil = useCallback(async (uid: string, email: string, nome = '') => {
     try {
-      await garantirPerfil(uid, '', email);
+      await garantirPerfil(uid, nome, email, true);
       const encontrado = await lerPerfil(uid);
       definirPerfil(encontrado);
     } catch (erro) {
@@ -78,7 +97,7 @@ export function ProvedorDeAutenticacao({ children }: { children: ReactNode }) {
       definirPerfil(null);
       return;
     }
-    void carregarPerfil(usuario.uid, usuario.email ?? '');
+    void carregarPerfil(usuario.uid, usuario.email ?? '', usuario.displayName ?? '');
   }, [usuario, carregarPerfil]);
 
   const valor = useMemo<ValorDaAutenticacao>(() => {
@@ -93,6 +112,13 @@ export function ProvedorDeAutenticacao({ children }: { children: ReactNode }) {
       perfil,
       carregando,
       nomeParaExibir,
+      entrarComGoogle,
+      aceiteGooglePendente,
+      confirmarAceiteGoogle: async () => {
+        if (!usuario) throw new Error('Entre novamente para continuar.');
+        await registrarAceiteLegal(usuario.uid);
+        definirAceiteGooglePendente(false);
+      },
       entrar: async (email, senha) => {
         await entrarNoFirebase(email, senha);
       },
@@ -125,7 +151,7 @@ export function ProvedorDeAutenticacao({ children }: { children: ReactNode }) {
         await enviarVerificacaoEmail();
       },
     };
-  }, [usuario, perfil, carregando, carregarPerfil]);
+  }, [usuario, perfil, carregando, carregarPerfil, aceiteGooglePendente]);
 
   return (
     <ContextoAutenticacao.Provider value={valor}>{children}</ContextoAutenticacao.Provider>

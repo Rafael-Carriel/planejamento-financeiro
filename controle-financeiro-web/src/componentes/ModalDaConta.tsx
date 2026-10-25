@@ -180,7 +180,10 @@ export function ModalDaConta({ aoFechar }: { aoFechar: () => void }) {
       )}
 
       {/* Aba: E-mail */}
-      {aba === 'email' && (
+      {(aba === 'email' || aba === 'senha') && usuario?.providerData.some(p=>p.providerId==='google.com') && !usuario.providerData.some(p=>p.providerId==='password') && <div className="aviso">
+        Sua conta usa o Google. Gerencie seu e-mail e sua senha na <a href="https://myaccount.google.com/" target="_blank" rel="noopener noreferrer">Conta Google ↗</a>. O Planeora não recebe sua senha do Google.
+      </div>}
+      {aba === 'email' && (!usuario?.providerData.some(p=>p.providerId==='google.com') || usuario.providerData.some(p=>p.providerId==='password')) && (
         <form className="formulario" onSubmit={(evento) => void salvarEmail(evento)}>
           <div className="campo">
             <span>E-mail atual</span>
@@ -228,7 +231,7 @@ export function ModalDaConta({ aoFechar }: { aoFechar: () => void }) {
       )}
 
       {/* Aba: Senha */}
-      {aba === 'senha' && (
+      {aba === 'senha' && (!usuario?.providerData.some(p=>p.providerId==='google.com') || usuario.providerData.some(p=>p.providerId==='password')) && (
         <form className="formulario" onSubmit={(evento) => void salvarSenha(evento)}>
           <label className="campo">
             <span>Senha atual</span>

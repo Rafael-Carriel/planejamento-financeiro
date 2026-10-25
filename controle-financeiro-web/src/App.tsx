@@ -31,6 +31,7 @@ import { Administracao } from './paginas/Administracao';
 import { ProvedorDeAssinatura } from './contextos/ContextoAssinatura';
 import { DocumentosLegais, Privacidade } from './paginas/Privacidade';
 import { Instalacao } from './paginas/Instalacao';
+import { ConfirmacaoGoogle } from './componentes/ConfirmacaoGoogle';
 
 /// Montagem do app.
 ///
@@ -41,11 +42,12 @@ import { Instalacao } from './paginas/Instalacao';
 /// Só monta os provedores de dados depois que existe um usuário: assim nenhuma
 /// consulta ao Firestore sai sem `uid` e sem permissão.
 function Portao() {
-  const { usuario, carregando } = useAutenticacao();
+  const { usuario, carregando, aceiteGooglePendente } = useAutenticacao();
   const { pathname } = useLocation();
 
   if (carregando) return <Carregando mensagem="Verificando sua sessão…" />;
   if (!usuario) return pathname === '/' ? <Apresentacao /> : <Entrada key={pathname} modoInicial={pathname === '/criar-conta' ? 'criar' : 'entrar'} />;
+  if (aceiteGooglePendente) return <ConfirmacaoGoogle />;
 
   return (
     <ProvedorDeAssinatura key={usuario.uid}>

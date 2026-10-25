@@ -5,6 +5,8 @@ import {
   sendEmailVerification,
   sendPasswordResetEmail,
   signInWithEmailAndPassword,
+  GoogleAuthProvider,
+  signInWithPopup,
   signOut,
   updateEmail,
   updatePassword,
@@ -31,6 +33,26 @@ export function observarUsuario(aoMudar: (usuario: User | null) => void): () => 
 
 export async function entrar(email: string, senha: string): Promise<void> {
   await signInWithEmailAndPassword(auth, email.trim(), senha);
+}
+
+export async function entrarComGoogle(): Promise<void> {
+  const provedor = new GoogleAuthProvider();
+  provedor.setCustomParameters({ prompt: 'select_account' });
+  await signInWithPopup(auth, provedor);
+}
+
+export async function temAceiteLegal(uid: string): Promise<boolean> {
+  const aceite = await getDoc(doc(bancoDeDados, 'usuarios', uid, 'aceitesLegais', VERSAO_LEGAL));
+  return aceite.exists() && aceite.data().termosAceitos === true && aceite.data().privacidadeLida === true;
+}
+
+export async function registrarAceiteLegal(uid: string): Promise<void> {
+  const referencia = doc(bancoDeDados, 'usuarios', uid, 'aceitesLegais', VERSAO_LEGAL);
+  await runTransaction(bancoDeDados, async operacao => {
+    if (!(await operacao.get(referencia)).exists()) operacao.set(referencia, {
+      versao: VERSAO_LEGAL, termosAceitos: true, privacidadeLida: true, criadoEm: serverTimestamp(),
+    });
+  });
 }
 
 /// Cria a conta e o perfil.
@@ -82,6 +104,7 @@ export async function garantirPerfil(
   uid: string,
   nome: string,
   email: string,
+  preservarNomeExistente = false,
 ): Promise<void> {
   const referencia = documentoDoUsuario(uid);
   const nomeLimpo = nome.trim();
@@ -95,7 +118,7 @@ export async function garantirPerfil(
     else {
       const patch:Record<string,unknown>={};
       if(existente.data().email!==email) patch.email=email;
-      if(nomeLimpo && existente.data().nome!==nomeLimpo) patch.nome=nomeLimpo.slice(0,80);
+      if(!preservarNomeExistente && nomeLimpo && existente.data().nome!==nomeLimpo) patch.nome=nomeLimpo.slice(0,80);
       if(Object.keys(patch).length) operacao.update(referencia,{...patch,atualizadoEm:serverTimestamp()});
     }
   });
@@ -203,7 +226,8 @@ export async function enviarVerificacaoEmail(): Promise<void> {
 /// O SDK devolve códigos como 'auth/invalid-credential'; mostrar isso na tela
 /// não ajuda ninguém. Mensagens sem código conhecido caem no genérico.
 export function mensagemDeErro(erro: unknown): string {
-  const codigo = erro instanceof FirebaseError ? erro.code : '';
+  const codigo = erro instanceof FirebaseError ? erro.code
+    : erro instanceof Error && 'code' in erro && typeof erro.code === 'string' ? erro.code : '';
 
   switch (codigo) {
     case 'auth/invalid-email':
@@ -225,7 +249,18 @@ export function mensagemDeErro(erro: unknown): string {
     case 'auth/network-request-failed':
       return 'Sem conexão com o Firebase. Confira a internet e tente de novo.';
     case 'auth/operation-not-allowed':
-      return 'O acesso por e-mail e senha está desligado no Firebase. Ative em Authentication > Sign-in method.';
+      return 'Esta forma de acesso está indisponível. Tente outra opção ou fale com o SAC.';
+    case 'auth/popup-closed-by-user':
+    case 'auth/cancelled-popup-request':
+      return 'A entrada com Google foi cancelada. Você pode tentar novamente.';
+    case 'auth/popup-blocked':
+      return 'O navegador bloqueou a janela do Google. Permita pop-ups para o Planeora e tente novamente.';
+    case 'auth/unauthorized-domain':
+      return 'Este endereço não está autorizado para entrar com o Google. Acesse o site oficial do Planeora.';
+    case 'auth/account-exists-with-different-credential':
+      return 'Este e-mail já usa outra forma de acesso. Entre pelo método que você utilizou no cadastro.';
+    case 'auth/operation-not-supported-in-this-environment':
+      return 'Abra o Planeora no Chrome, Edge ou Safari para entrar com o Google.';
     case 'auth/requires-recent-login':
       return 'Por segurança, entre de novo antes de fazer essa mudança.';
     case 'permission-denied':

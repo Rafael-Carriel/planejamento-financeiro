@@ -41,7 +41,7 @@ function montarUsuario(base) {
     displayName: base.displayName || null,
     emailVerified: true,
     isAnonymous: false,
-    providerData: [],
+    providerData: base.providerData || [],
     getIdToken: function () { return Promise.resolve('token-e2e'); },
     getIdTokenResult: function () { return Promise.resolve({ token: 'token-e2e', claims: {} }); },
   };
@@ -84,6 +84,20 @@ export async function signInWithEmailAndPassword(_auth, email, senha) {
 
 export async function createUserWithEmailAndPassword(_auth, email, senha) {
   return signInWithEmailAndPassword(_auth, email, senha);
+}
+
+export class GoogleAuthProvider {
+  constructor() { this.providerId = 'google.com'; }
+  setCustomParameters(params) { this.parameters = params; }
+}
+export async function signInWithPopup(_auth, provider) {
+  if (provider.providerId !== 'google.com' || provider.parameters.prompt !== 'select_account') throw new Error('Unexpected Google configuration');
+  if (window.__E2E_GOOGLE_ERROR__) {
+    const error = new Error('Synthetic Google error'); error.code = window.__E2E_GOOGLE_ERROR__; throw error;
+  }
+  const usuario = montarUsuario({uid:'e2e-google',email:'google@example.invalid',displayName:'Pessoa Google',providerData:[{providerId:'google.com'}]});
+  sessao.currentUser = usuario; gravarSessao(usuario); notificar();
+  return {user:usuario,providerId:'google.com',operationType:'signIn'};
 }
 
 export async function signOut() {
