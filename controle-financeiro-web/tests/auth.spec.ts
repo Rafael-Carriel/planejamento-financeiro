@@ -71,7 +71,7 @@ test.describe('Autenticação', () => {
 
     await painel.sair();
 
-    await expect(page.getByRole('heading',{level:1,name:/Tá tudo/})).toBeVisible();
+    await expect(page.getByRole('heading',{level:1,name:/Suas finanças/})).toBeVisible();
     await page.getByRole('link',{name:'Entrar',exact:false}).first().click();
     await expect(login.titulo).toBeVisible();
     await expect(login.campoEmail).toBeVisible();

@@ -7,7 +7,7 @@ for (const width of [320,390,768,1440]) {
     await page.setViewportSize({width,height:950});
     await page.addInitScript(()=>localStorage.setItem('theme','dark'));
     await page.goto('/');
-    await expect(page.getByRole('heading',{level:1,name:/Tá tudo/})).toBeVisible();
+    await expect(page.getByRole('heading',{level:1,name:/Suas finanças/})).toBeVisible();
     expect(await page.locator('.landing h1').evaluate(el=>getComputedStyle(el).color)).toBe('rgb(241, 245, 249)');
     expect(await page.locator('.landing').evaluate(el=>getComputedStyle(el).backgroundColor)).toBe('rgb(15, 23, 42)');
     await expect(page.getByLabel('Demonstração interativa')).toHaveCount(0);
@@ -41,7 +41,7 @@ test('login funciona pela apresentação e sessão existente mantém o painel',a
   await autenticar(page);await page.goto('/');
   await expect(page.getByRole('heading',{name:'Painel',exact:true})).toBeVisible();
   await page.goto('/#/conheca');
-  await expect(page.getByRole('heading',{level:1,name:/Tá tudo/})).toBeVisible();
+  await expect(page.getByRole('heading',{level:1,name:/Suas finanças/})).toBeVisible();
   await page.getByRole('link',{name:'Entrar',exact:false}).first().click();
   await expect(page.getByRole('heading',{name:'Painel',exact:true})).toBeVisible();
 });
