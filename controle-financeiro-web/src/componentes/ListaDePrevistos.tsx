@@ -255,6 +255,7 @@ export function ListaDePrevistos({
                   <input
                     type="checkbox"
                     className="previstos-checkbox-item"
+                    aria-label={`Selecionar ${descricaoDaOcorrencia(ocorrencia)}`}
                     checked={estaSelecionada}
                     onChange={() => alternarSelecao(ocorrencia.chave)}
                   />

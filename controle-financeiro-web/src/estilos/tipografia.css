@@ -1,0 +1,64 @@
+@font-face {
+  font-family: 'Planeora Sans';
+  font-style: normal;
+  font-weight: 400 800;
+  font-display: swap;
+  src: url(/fontes/inter-latin-ext.woff2) format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C4, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+@font-face {
+  font-family: 'Planeora Sans';
+  font-style: normal;
+  font-weight: 400 800;
+  font-display: swap;
+  src: url(/fontes/inter-latin.woff2) format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+:root { --fonte-texto:'Planeora Sans',system-ui,-apple-system,'Segoe UI',sans-serif; --fonte-titulo:var(--fonte-texto); --fonte-dados:var(--fonte-texto); }
+body { font-weight:450; }
+h1,h2,h3 { font-weight:750; }
+.dinheiro { font-family:var(--fonte-dados);font-variant-numeric:tabular-nums lining-nums;font-weight:750;letter-spacing:-.025em; }
+.cartao-resumo-valor { font-weight:800;font-size:1.8rem; }
+.painel-saldo-valor { font-weight:800; }
+.cartao-resumo-nota,.texto-miudo { font-weight:450; }
+.etiqueta { font-weight:750;letter-spacing:.08em;color:var(--tinta-media); }
+.lancamento { grid-template-columns:40px minmax(0,1fr) auto auto;column-gap:14px; }
+.lancamento-textos { min-width:0; }
+.lancamento-descricao { font-weight:700;font-size:.95rem;white-space:normal;overflow-wrap:anywhere;line-height:1.45; }
+.lancamento-meta { flex-wrap:wrap;white-space:normal;overflow:visible;gap:4px 8px;font-size:.78rem;line-height:1.6;margin-top:5px; }
+.lancamento-meta>span { min-width:0;overflow-wrap:anywhere; }
+.lancamento-meta .marcador-categoria { flex:0 0 8px; }
+.lancamento-meta .selo-situacao { white-space:nowrap; }
+.lancamento-valor { font-size:1rem;font-weight:750; }
+.previstos-checkbox-item { width:22px;height:22px;margin:0; }
+.previstos-checkbox-label { min-height:44px; }
+.previstos-checkbox { width:20px;height:20px; }
+.previstos-selecao-info { flex-wrap:wrap;gap:8px 16px; }
+.previsao-mes-cabeca { flex-wrap:wrap;gap:8px 20px;align-items:baseline; }
+.previsao-mes-cabeca h2 { flex:1 1 190px; }
+.previsao-mes-cabeca>.texto-miudo { display:flex;flex-wrap:wrap;gap:4px 8px;align-items:baseline; }
+.previsao-mes-cabeca .dinheiro { white-space:nowrap; }
+@media(max-width:560px) {
+ .lancamento,.lancamento-com-acao { grid-template-columns:40px minmax(0,1fr) auto;grid-template-areas:'icone textos textos' 'valor valor acoes';align-items:start;gap:12px;padding:18px 16px; }
+ .lancamento-selo { grid-area:icone;width:40px;height:40px; }
+ .lancamento-textos { grid-area:textos; }
+ .lancamento-valor { grid-area:valor;text-align:left;align-self:center;font-size:1.05rem; }
+ .lancamento-acoes,.lancamento-acao { grid-area:acoes;align-self:center;justify-self:end;grid-column:auto;gap:8px; }
+ .lancamento-descricao { font-size:.95rem; }
+ .lancamento-meta { font-size:.78rem; }
+ .lancamento-previsto { padding-left:14px; }
+ .lancamento-acao:empty { display:none; }
+ .grupo-dia-cabeca { flex-wrap:wrap;padding:10px 16px;gap:4px 12px;position:static; }
+ .grupo-dia-data { font-size:.75rem; }
+ .grupo-dia-cabeca .dinheiro { white-space:nowrap; }
+ .grade-resumo .cartao-resumo-valor { font-size:clamp(1.1rem,4.9vw,1.4rem);font-weight:800; }
+ .grade-resumo .etiqueta { font-size:.67rem; }
+ .grade-resumo .cartao-resumo-nota { font-size:.78rem;line-height:1.6; }
+ .previstos-barra-acoes { align-items:stretch;padding:12px 14px; }
+ .previstos-selecao-info { width:100%; }
+ .previstos-barra-acoes>.botao { width:100%; }
+ .previsao-mes-cabeca h2 { flex-basis:100%;font-size:1.15rem; }
+}
+
+@media(max-width:560px) { .cartao-corpo-sem-topo:has(.lista-lancamentos) { padding-inline:12px; } }
+@media(max-width:360px) { .lancamento,.lancamento-com-acao { grid-template-areas:'icone textos textos' 'valor valor valor' '. acoes acoes'; } }

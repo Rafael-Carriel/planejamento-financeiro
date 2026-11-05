@@ -6,6 +6,7 @@ import { LimiteDeErro, TelaDeFalha } from './componentes/LimiteDeErro';
 import { TelaDeConfiguracao } from './paginas/TelaDeConfiguracao';
 import './index.css';
 import './estilos/interface.css';
+import './estilos/tipografia.css';
 
 /// Ponto de partida.
 ///

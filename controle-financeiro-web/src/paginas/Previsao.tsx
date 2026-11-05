@@ -400,7 +400,7 @@ export function Previsao() {
 
                 return (
                   <section className="cartao" key={mesPrevisto.chave}>
-                    <div className="cartao-cabeca">
+                    <div className="cartao-cabeca previsao-mes-cabeca">
                       <h2>{rotuloDoMes(mesPrevisto.inicio)}</h2>
                       <span className="texto-miudo">
                         saldo previsto <Dinheiro valor={mesPrevisto.saldo} cor="saldo" comSinal />

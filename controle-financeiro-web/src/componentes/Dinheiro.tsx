@@ -1,11 +1,6 @@
 import { formatarComSinal, formatarMoeda } from '../utilitarios/formatadores';
 
-/// Valor em dinheiro.
-///
-/// Existe como componente por um motivo só: garantir que todo número do app
-/// receba a classe `dinheiro` e, com ela, a fonte monoespaçada tabular. Números
-/// de larguras diferentes numa coluna são a coisa que mais faz uma tela de
-/// finanças parecer desalinhada.
+/// Valores usam a mesma fonte da interface, com dígitos tabulares alinhados.
 
 type CorDoValor = 'entrada' | 'saida' | 'neutro' | 'saldo';
 
