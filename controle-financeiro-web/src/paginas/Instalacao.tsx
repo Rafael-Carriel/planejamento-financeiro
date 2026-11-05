@@ -3,7 +3,7 @@ import { InstalarAplicativo } from '../componentes/InstalarAplicativo';
 
 export function Instalacao() {
   return <>
-    <CabecalhoDaPagina titulo="Instalar Planeora" descricao="No celular e no computador." comSeletorDeMes={false} />
+    <CabecalhoDaPagina titulo="Aplicativo Planeora" descricao="Seu controle financeiro, sempre à mão." comSeletorDeMes={false} />
     <div className="painel-instalacao"><InstalarAplicativo mostrarInstrucoes /></div>
   </>;
 }

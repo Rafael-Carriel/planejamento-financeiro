@@ -1,4 +1,5 @@
 
+import { Icone } from './Icone';
 import { useNavigate } from 'react-router-dom';
 
 import { useLembretes } from '../contextos/ContextoLembretes';
@@ -22,7 +23,7 @@ export function BotaoLembrete({comRotulo=false}:{comRotulo?:boolean}) {
           : `${naoLidos} ${naoLidos === 1 ? 'lembrete não lido' : 'lembretes não lidos'}`
       }
     >
-      <span aria-hidden="true">🔔</span>{comRotulo&&<span>Lembretes</span>}
+      <Icone nome="sino" />{comRotulo&&<span>Lembretes</span>}
       {naoLidos > 0 ? (
         <span className="selo-situacao selo-atencao selo-contador" aria-hidden="true">
           {naoLidos > 9 ? '9+' : naoLidos}

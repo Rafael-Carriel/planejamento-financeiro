@@ -1,9 +1,11 @@
+import './servicos/instalacao';
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 
 import { LimiteDeErro, TelaDeFalha } from './componentes/LimiteDeErro';
 import { TelaDeConfiguracao } from './paginas/TelaDeConfiguracao';
 import './index.css';
+import './estilos/interface.css';
 
 /// Ponto de partida.
 ///

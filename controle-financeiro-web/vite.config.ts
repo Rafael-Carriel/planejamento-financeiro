@@ -23,6 +23,7 @@ export default defineConfig(({command,mode}) => {
       registerType: 'autoUpdate',
       includeAssets: ['logo.png', 'favicon.ico'],
       manifest: {
+        id: '/',
         name: 'Planeora - Planejamento Financeiro',
         short_name: 'Planeora',
         description: 'Controle financeiro pessoal: entradas, saídas, categorias e planejamento mensal.',

@@ -1,3 +1,4 @@
+import { Icone, type NomeDeIcone } from './Icone';
 import { useTema } from '../contextos/ContextoTema';
 import { useEffect, useRef, useState } from 'react';
 import { Link, NavLink, Outlet, useLocation } from 'react-router-dom';
@@ -15,36 +16,36 @@ interface ItemDeNavegacao {
   para: string;
   rotulo: string;
   rotuloCurto: string;
-  icone: string;
+  icone: NomeDeIcone;
 }
 
 const ITENS: ItemDeNavegacao[] = [
-  { para: '/atendimento', rotulo: 'SAC e ajuda', rotuloCurto: 'SAC', icone: '?' },
-  { para: '/', rotulo: 'Painel', rotuloCurto: 'Painel', icone: '◧' },
-  { para: '/instalar', rotulo: 'Instalar aplicativo', rotuloCurto: 'Instalar', icone: '↓' },
-  { para: '/receitas', rotulo: 'Receitas', rotuloCurto: 'Receitas', icone: '↑' },
-  { para: '/despesas', rotulo: 'Despesas', rotuloCurto: 'Despesas', icone: '↓' },
+  { para: '/', rotulo: 'Painel', rotuloCurto: 'Painel', icone: 'painel' },
+  { para: '/receitas', rotulo: 'Receitas', rotuloCurto: 'Receitas', icone: 'receitas' },
+  { para: '/despesas', rotulo: 'Despesas', rotuloCurto: 'Despesas', icone: 'despesas' },
   // "Fixas" no celular: cabe na barra de baixo e é como se fala das contas que
   // repetem todo mês.
-  { para: '/recorrencias', rotulo: 'Recorrências', rotuloCurto: 'Fixas', icone: '⟳' },
-  { para: '/previsao', rotulo: 'Previsão', rotuloCurto: 'Previsão', icone: '◔' },
-  { para: '/categorias', rotulo: 'Categorias', rotuloCurto: 'Categorias', icone: '⬢' },
-  { para: '/dividas', rotulo: 'Dívidas', rotuloCurto: 'Dívidas', icone: '💸' },
-  { para: '/lembretes', rotulo: 'Lembretes', rotuloCurto: 'Avisos', icone: '🔔' },
-  { para: '/planejamento', rotulo: 'Planejamento', rotuloCurto: 'Plano', icone: '◎' },
-  { para: '/historico', rotulo: 'Histórico', rotuloCurto: 'Histórico', icone: '≡' },
-  { para: '/relatorios', rotulo: 'Relatórios', rotuloCurto: 'Relatórios', icone: '📊' },
-  { para: '/reserva-emergencia', rotulo: 'Reserva', rotuloCurto: 'Reserva', icone: '🛡' },
-  { para: '/objetivos', rotulo: 'Objetivos', rotuloCurto: 'Objetivos', icone: '🎯' },
-  { para: '/assinatura', rotulo: 'Assinatura', rotuloCurto: 'Assinatura', icone: '◇' },
-  { para: '/privacidade', rotulo: 'Privacidade e direitos', rotuloCurto: 'Privacidade', icone: '◈' },
+  { para: '/recorrencias', rotulo: 'Recorrências', rotuloCurto: 'Fixas', icone: 'recorrencias' },
+  { para: '/previsao', rotulo: 'Previsão', rotuloCurto: 'Previsão', icone: 'previsao' },
+  { para: '/categorias', rotulo: 'Categorias', rotuloCurto: 'Categorias', icone: 'categorias' },
+  { para: '/dividas', rotulo: 'Dívidas', rotuloCurto: 'Dívidas', icone: 'dividas' },
+  { para: '/lembretes', rotulo: 'Lembretes', rotuloCurto: 'Avisos', icone: 'lembretes' },
+  { para: '/planejamento', rotulo: 'Planejamento', rotuloCurto: 'Plano', icone: 'planejamento' },
+  { para: '/historico', rotulo: 'Histórico', rotuloCurto: 'Histórico', icone: 'historico' },
+  { para: '/relatorios', rotulo: 'Relatórios', rotuloCurto: 'Relatórios', icone: 'relatorios' },
+  { para: '/reserva-emergencia', rotulo: 'Reserva', rotuloCurto: 'Reserva', icone: 'reserva' },
+  { para: '/objetivos', rotulo: 'Objetivos', rotuloCurto: 'Objetivos', icone: 'objetivos' },
+  { para: '/atendimento', rotulo: 'SAC e ajuda', rotuloCurto: 'SAC', icone: 'ajuda' },
+  { para: '/instalar', rotulo: 'Instalar aplicativo', rotuloCurto: 'Instalar', icone: 'instalar' },
+  { para: '/assinatura', rotulo: 'Assinatura', rotuloCurto: 'Assinatura', icone: 'assinatura' },
+  { para: '/privacidade', rotulo: 'Privacidade e direitos', rotuloCurto: 'Privacidade', icone: 'reserva' },
 ];
 
-const ITENS_PRINCIPAIS = ['/', '/receitas', '/despesas', '/recorrencias', '/dividas'];
+const ITENS_PRINCIPAIS = ['/', '/receitas', '/despesas', '/recorrencias'];
 
 export function Layout() {
   const { assinatura } = useAssinatura();
-  const itens = assinatura?.admin ? [...ITENS, { para: '/admin', rotulo: 'Administração', rotuloCurto: 'Admin', icone: '⚙' }] : ITENS;
+  const itens: ItemDeNavegacao[] = assinatura?.admin ? [...ITENS, { para: '/admin', rotulo: 'Administração', rotuloCurto: 'Admin', icone: 'admin' }] : ITENS;
   const { nomeParaExibir, usuario, sair } = useAutenticacao();
   const [contaAberta, definirContaAberta] = useState(false);
   const [maisAberto, definirMaisAberto] = useState(false);
@@ -54,14 +55,18 @@ export function Layout() {
 
   const {tema,alternarTema} = useTema();
 
-  useEffect(() => { definirMaisAberto(false); }, [localAtual.pathname]);
+  useEffect(() => { definirMaisAberto(false); window.scrollTo(0, 0); }, [localAtual.pathname]);
   useEffect(() => {
     if (!maisAberto) return;
+    const menu = document.getElementById('menu-mais');
+    const rolagemAnterior = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    menu?.querySelector<HTMLElement>('[role=menuitem]')?.focus();
     const aoTeclar = (evento: KeyboardEvent) => {
-      if (evento.key === 'Escape') definirMaisAberto(false);
+      if (evento.key === 'Escape') { definirMaisAberto(false); maisRef.current?.querySelector('button')?.focus(); }
     };
     window.addEventListener('keydown', aoTeclar);
-    return () => window.removeEventListener('keydown', aoTeclar);
+    return () => { window.removeEventListener('keydown', aoTeclar); document.body.style.overflow = rolagemAnterior; };
   }, [maisAberto]);
 
   const itensPrincipais = itens.filter((item) => ITENS_PRINCIPAIS.includes(item.para));
@@ -78,7 +83,7 @@ export function Layout() {
             <img src="/logo.png" alt="" className="marca-logo" />
           </div>
           <div className="marca-texto">
-            <span className="marca-nome">Planeora</span>
+            <span className="marca-nome">Planeora</span><span className="marca-subtitulo">Suas finanças, com clareza</span>
           </div>
         </div>
 
@@ -95,7 +100,7 @@ export function Layout() {
                   }
                 >
                   <span className="navegacao-icone" aria-hidden="true">
-                    {item.icone}
+                    <Icone nome={item.icone} />
                   </span>
                   <span className="navegacao-rotulo">{item.rotulo}</span>
                   <span className="navegacao-rotulo-curto">{item.rotuloCurto}</span>
@@ -128,7 +133,7 @@ export function Layout() {
             onClick={alternarTema}
             aria-label={tema === 'dark' ? 'Ativar tema claro' : 'Ativar tema escuro'}
           >
-            <span aria-hidden="true">{tema === 'dark' ? '☀️' : '🌙'}</span>
+            <Icone nome={tema === 'dark' ? 'sol' : 'lua'} />
             {tema === 'dark' ? 'Tema claro' : 'Tema escuro'}
           </button>
 
@@ -162,7 +167,7 @@ export function Layout() {
               onClick={alternarTema}
               aria-label={tema === 'dark' ? 'Ativar tema claro' : 'Ativar tema escuro'}
             >
-              <span aria-hidden="true">{tema === 'dark' ? '☀️' : '🌙'}</span>
+              <Icone nome={tema === 'dark' ? 'sol' : 'lua'} />
             </button>
             <button
               type="button"
@@ -202,7 +207,7 @@ export function Layout() {
                 }
               >
                 <span className="item-nav-mobile-icone" aria-hidden="true">
-                  {item.icone}
+                  <Icone nome={item.icone} />
                 </span>
                 <span className="item-nav-mobile-rotulo">{item.rotuloCurto}</span>
               </NavLink>
@@ -215,11 +220,12 @@ export function Layout() {
               className={`item-nav-mobile botao-mais${maisAberto ? ' ativo' : temAtivoSecundario ? ' tem-ativo' : ''}`}
               onClick={() => definirMaisAberto(!maisAberto)}
               aria-expanded={maisAberto}
-              aria-haspopup="true"
+              aria-haspopup="menu"
+              aria-controls={maisAberto ? "menu-mais" : undefined}
               aria-label="Mais opções"
             >
               <span className="item-nav-mobile-icone" aria-hidden="true">
-                ☰
+                <Icone nome="mais" />
               </span>
               <span className="item-nav-mobile-rotulo">Mais</span>
             </button>
@@ -231,7 +237,7 @@ export function Layout() {
                   onClick={() => definirMaisAberto(false)}
                   aria-hidden="true"
                 />
-                <div className="popover-mais" role="menu" aria-label="Mais seções">
+                <div className="popover-mais" id="menu-mais" role="menu" aria-label="Mais seções"><div className="menu-mais-titulo">Seu espaço financeiro</div>
                   {itensSecundarios.map((item) => (
                     <NavLink
                       key={item.para}
@@ -243,17 +249,17 @@ export function Layout() {
                       onClick={() => definirMaisAberto(false)}
                     >
                       <span className="popover-item-icone" aria-hidden="true">
-                        {item.icone}
+                        <Icone nome={item.icone} />
                       </span>
                       <span className="popover-item-rotulo">{item.rotulo}</span>
                     </NavLink>
                   ))}
                   <div className="popover-configuracoes">
                     <button type="button" className="popover-item" role="menuitem" onClick={() => { definirMaisAberto(false); definirContaAberta(true); }}>
-                      <span aria-hidden="true">◉</span> Perfil e configurações
+                      <Icone nome="conta" /> Perfil e configurações
                     </button>
                     <button type="button" className="popover-item" role="menuitem" onClick={alternarTema}>
-                      <span aria-hidden="true">{tema === 'dark' ? '☀️' : '🌙'}</span> {tema === 'dark' ? 'Ativar tema claro' : 'Ativar tema escuro'}
+                      <Icone nome={tema === 'dark' ? 'sol' : 'lua'} /> {tema === 'dark' ? 'Ativar tema claro' : 'Ativar tema escuro'}
                     </button>
                     <button type="button" className="popover-item" role="menuitem" onClick={() => void sair()}>Sair da conta</button>
                   </div>

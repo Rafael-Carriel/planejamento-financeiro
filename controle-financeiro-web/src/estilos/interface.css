@@ -1,0 +1,156 @@
+/* Shared surfaces and responsive app shell. */
+:root { --raio: 20px; --raio-pequeno: 12px; --tinta-fraca: #64748b; --sombra-cartao: 0 2px 8px rgba(15,23,42,.025),0 12px 28px -20px rgba(15,23,42,.15); }
+[data-theme='dark'] { --tinta-fraca: #94a3b8; --destaque-claro: #292343; --destaque: #a78bfa; --destaque-medio: #c4b5fd; }
+button, input, select, textarea { font: inherit; }
+button,a,input,select,textarea { -webkit-tap-highlight-color: transparent; }
+button:focus-visible,a:focus-visible,summary:focus-visible { outline: 3px solid var(--destaque); outline-offset: 3px; }
+.botao { min-height:44px; border-radius:12px; padding:11px 18px; font-size:.875rem; transition:background .18s,color .18s,box-shadow .18s,transform .18s; }
+.botao-principal { background:#6d28d9; color:#fff; box-shadow:0 4px 10px rgba(109,40,217,.16); }
+.botao-principal:hover:not(:disabled) { background:#5b21b6; box-shadow:0 5px 16px rgba(109,40,217,.22); transform:translateY(-1px); }
+.botao-contorno { background:var(--cartao); border:1px solid var(--borda-forte); }
+.botao svg { flex-shrink:0; width:19px; height:19px; }
+.cartao:hover { transform:none; box-shadow:var(--sombra-cartao); }
+.barra-lateral { background:#111b2e; padding:24px 16px 16px; border-right:1px solid rgba(255,255,255,.06); }
+.marca { padding:0 10px 24px; gap:12px; }
+.marca-texto { display:flex;flex-direction:column; gap:3px; }
+.marca .marca-nome { font-size:1.35rem; letter-spacing:-.04em; color:#fff; }
+.marca-subtitulo { color:#94a3b8; font-size:.65rem; letter-spacing:.01em; }
+.navegacao-link { min-height:42px; border-radius:11px; padding:9px 12px; font-size:.82rem; gap:12px; }
+.navegacao-link.ativo { background:rgba(167,139,250,.16); color:#fff; box-shadow:inset 3px 0 #a78bfa; }
+.navegacao-icone { display:flex;align-items:center;justify-content:center; font-size:19px; width:22px; }
+.navegacao-lista { gap:3px; }
+.rodape-barra { padding-top:16px; }
+.cabecalho { background:var(--papel); border-bottom:1px solid var(--borda); backdrop-filter:none; padding:28px 32px 22px; box-shadow:none; }
+[data-theme='dark'] .cabecalho { background:var(--papel); }
+.cabecalho-titulos h1 { font-size:clamp(1.35rem,2vw,1.75rem); font-weight:700; letter-spacing:-.04em; }
+.cabecalho-descricao { margin:6px 0 0; color:var(--tinta-media); font-size:.875rem; }
+.pagina { padding:24px 32px 40px; }
+.conteudo,.conteudo-wrapper,.conteudo-conteiner,.cabecalho-titulos,.cabecalho-acoes,.cartao { min-width:0; }
+.menu-mais-titulo { grid-column:1/-1; padding:8px 10px 12px; font-size:.75rem;font-weight:700;color:var(--tinta-media);letter-spacing:.02em; }
+.popover-configuracoes { display:flex;flex-direction:column;gap:3px;border-top:1px solid var(--borda);padding-top:8px; margin-top:8px; grid-column:1/-1; }
+.popover-configuracoes .popover-item { width:100%;text-align:left; border:0; background:transparent; font:inherit; font-size:.82rem; }
+.popover-configuracoes .popover-item svg { width:20px;height:20px; }
+/* Help stays within the same navigation and uses the same fields. */
+.ajuda-introducao { max-width:640px;margin:0 0 28px; }
+.ajuda-introducao h2 { font-size:clamp(1.5rem,3vw,2rem);letter-spacing:-.04em;margin:10px 0; }
+.ajuda-introducao p { color:var(--tinta-media);font-size:.9rem;line-height:1.7; }
+.ajuda-grade { display:grid;grid-template-columns:minmax(0,.85fr) minmax(0,1.15fr);gap:28px;align-items:start; }
+.ajuda-grade>section { min-width:0; margin:0; }
+.ajuda-perguntas>h2,.sac-chamados>h2 { font-size:1.05rem; margin-bottom:16px; }
+.ajuda-perguntas details { background:var(--cartao);border:1px solid var(--borda);border-radius:14px;margin-bottom:12px;padding:18px; }
+.ajuda-perguntas summary { cursor:pointer;font-weight:600;font-size:.875rem;line-height:1.6; }
+.ajuda-perguntas details[open] { border-color:var(--borda-forte); }
+.ajuda-perguntas details p { color:var(--tinta-media);font-size:.85rem;margin:12px 0 0;line-height:1.7; }
+.sac-chamados { padding:24px; }
+.sac-chamados .campo { display:flex;flex-direction:column;gap:8px;margin:18px 0;font-size:.85rem;color:var(--tinta-media); }
+.sac-chamados .campo select,.sac-chamados .campo textarea { width:100%;max-width:100%;border:1px solid var(--borda-forte);background:var(--papel);color:var(--tinta);border-radius:12px;padding:12px;font:inherit; }
+.sac-chamados textarea { min-height:140px;resize:vertical; }
+.sac-chamados>p,.sac-chamados form>p { color:var(--tinta-media);font-size:.8rem;line-height:1.7; }
+.sac-chamados .sac-atualizar { margin:12px 0 4px; }
+.atendimento-integrado .links-legais { margin-top:32px; }
+/* Installation has an honest action for each browser capability. */
+.painel-instalacao { max-width:920px; margin:28px auto; padding:0 28px; }
+.instalar-app { background:var(--cartao);border:1px solid var(--borda);border-radius:24px; padding:40px; text-align:center; box-shadow:var(--sombra-cartao); }
+.instalar-app-simbolo { display:grid;place-items:center;width:72px;height:72px;margin:0 auto 24px;border-radius:22px;background:var(--destaque-claro);color:var(--destaque);font-size:32px; }
+.instalar-app h2 { margin:12px 0; font-size:clamp(1.5rem,3vw,2rem);letter-spacing:-.04em; }
+.instalar-app-legenda { max-width:440px;margin:0 auto;color:var(--tinta-media);font-size:.9rem;line-height:1.7; }
+.instalar-beneficios { display:flex;justify-content:center;gap:24px;flex-wrap:wrap;margin:28px 0;font-size:.8rem;color:var(--tinta-media); }
+.instalar-beneficios span { display:flex;align-items:center;gap:7px; }
+.instalar-beneficios svg { width:18px;height:18px;color:var(--entrada); }
+.instalar-app-botao { min-width:220px;justify-content:center; }
+.instalacao-estado { font-size:.85rem;color:var(--tinta-media);max-width:480px;margin:20px auto; }
+.instalacao-recado { font-size:.85rem;color:var(--tinta-media); }
+.instalacao-recado:empty { display:none; }
+.instalar-app-ajuda { text-align:left; margin-top:32px;padding-top:28px;border-top:1px solid var(--borda); }
+.instalar-app-ajuda h3 { font-size:1rem;margin:0 0 20px; }
+.instalacao-passos { display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:20px; }
+.instalacao-passos strong { font-size:.85rem; }
+.instalacao-passos p,.instalacao-alternativa p { font-size:.8rem;color:var(--tinta-media);line-height:1.7; }
+.instalacao-alternativa { border-top:1px solid var(--borda);margin-top:20px;padding-top:12px; }
+.instalacao-alternativa .botao { font-size:.8rem; }
+@media(max-width:1100px) { .ajuda-grade { grid-template-columns:minmax(0,1fr); } }
+@media(max-width:940px) {
+ .tira-conta { height:68px;padding:12px 20px;background:var(--cartao);color:var(--tinta);border-bottom:1px solid var(--borda); }
+ [data-theme='dark'] .tira-conta { background:var(--cartao); }
+ .tira-conta .marca-nome { color:var(--tinta);font-size:1.15rem;font-weight:700;letter-spacing:-.04em; }
+ .tira-conta .botao-tema,.tira-conta .botao-lembrete { display:grid;place-items:center;width:40px;height:40px;border-radius:12px;background:var(--papel);color:var(--tinta-media);font-size:20px; }
+ .tira-conta .botao-tema:hover,.tira-conta .botao-lembrete:hover { background:var(--papel-profundo);color:var(--tinta); }
+ .tira-conta .inicial { width:40px;height:40px;border-radius:12px; }
+ .conteudo { padding-bottom:calc(96px + env(safe-area-inset-bottom)); }
+ .cabecalho { position:relative;top:auto;padding:22px 20px 18px;gap:16px; }
+ .cabecalho-titulos h1 { font-size:1.5rem; }
+ .cabecalho-acoes { flex-direction:row;align-items:center;flex-wrap:wrap;justify-content:space-between;gap:12px; }
+ .cabecalho-acoes-extras { flex-wrap:wrap; }
+ .pagina { padding:20px 20px 28px; }
+ .barra-inferior-mobile { padding:8px 8px max(8px,env(safe-area-inset-bottom));background:var(--cartao);border-top:1px solid var(--borda);backdrop-filter:none;box-shadow:0 -4px 24px rgba(15,23,42,.04); }
+ .barra-inferior-lista { display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:2px; }
+ .barra-inferior-item { min-width:0; }
+ .item-nav-mobile { min-width:0;width:100%;min-height:58px;padding:6px 2px;gap:4px;border-radius:14px;color:var(--tinta-media);font-size:.68rem;font-weight:600; }
+ .item-nav-mobile-icone { font-size:22px;width:44px;height:28px;display:grid;place-items:center;border-radius:10px; }
+ .item-nav-mobile.ativo,.item-nav-mobile:hover,.botao-mais.tem-ativo { background:transparent;color:var(--destaque); }
+ .item-nav-mobile.ativo .item-nav-mobile-icone,.botao-mais.tem-ativo .item-nav-mobile-icone { background:var(--destaque-claro); }
+ .fundo-popover { background:rgba(15,23,42,.3); }
+ .popover-mais { display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px;left:12px;right:12px;bottom:calc(86px + env(safe-area-inset-bottom));width:auto;max-height:calc(100dvh - 178px - env(safe-area-inset-bottom));border-radius:24px;padding:18px 12px;background:var(--cartao);border:1px solid var(--borda);box-shadow:var(--sombra-flutuante); }
+ .popover-item { color:var(--tinta-media);font-size:.8rem;padding:12px 10px;min-height:48px;gap:10px; }
+ .popover-item:hover,.popover-item.ativo { color:var(--destaque);background:var(--destaque-claro); }
+ .popover-item-icone { display:flex;align-items:center;font-size:20px;flex-shrink:0; }
+ .popover-configuracoes .popover-item:hover { background:var(--papel); }
+ .painel-instalacao { padding:0 20px;margin:20px auto; }
+ .instalar-app { padding:28px 22px; }
+}
+@media(max-width:560px) {
+ .tira-conta { padding-inline:16px; }
+ .tira-conta-acoes { gap:5px; }
+ .cabecalho { padding-inline:16px; }
+ .pagina { padding:20px 16px 28px; }
+ .cabecalho-acoes .botao { width:auto; }
+ .grade-objetivos { grid-template-columns:minmax(0,1fr); }
+ .formulario-duas-colunas { grid-template-columns:minmax(0,1fr); }
+ .linha-planejamento { grid-template-columns:minmax(0,1fr) 96px; }
+ .lancamento,.lancamento-com-acao { grid-template-columns:32px minmax(0,1fr) auto;gap:8px; }
+ .lancamento-acoes { grid-column:2/-1;justify-content:flex-end; }
+ .abas-perfil,.conta-abas { max-width:100%;overflow-x:auto; }
+ .sac-chamados { padding:20px 16px; }
+ .sac-chamados form>.botao { width:100%; }
+ .ajuda-grade { gap:24px; }
+ .instalar-app { padding:28px 18px; }
+ .painel-instalacao { padding-inline:16px; }
+ .instalar-beneficios { gap:12px;font-size:.7rem; }
+ .instalar-app .publico-selo { font-size:.6rem;letter-spacing:.08em; }
+ .instalacao-passos { grid-template-columns:minmax(0,1fr);gap:12px; }
+ .instalacao-passos>div { padding:14px;border-radius:12px;background:var(--papel); }
+ .instalacao-passos p { margin-bottom:0; }
+ .instalar-app-botao { width:100%;min-width:0; }
+}
+@media(prefers-reduced-motion:reduce) { *,*::before,*::after { animation:none!important;transition:none!important;scroll-behavior:auto!important; } }
+
+.tira-conta .inicial { background:var(--destaque-claro);color:var(--destaque);flex-basis:40px; }
+.painel-instalacao { border:0;background:transparent;border-radius:0; }
+.painel-instalacao>.instalar-app { padding-top:40px; }
+.instalar-app-ajuda { background:transparent;border-inline:0;border-bottom:0;border-radius:0;padding-inline:0; }
+@media(max-width:560px) { .painel-instalacao>.instalar-app { padding-top:28px; } }
+
+.selecao { min-width:0;max-width:100%; }
+.barra-filtros { min-width:0; }
+.cabecalho-titulos { flex:1 1 auto;overflow-wrap:anywhere; } .cabecalho-linha-superior { max-width:100%; }
+
+.navegacao a.ativo { background:rgba(167,139,250,.16);color:#fff;box-shadow:inset 3px 0 #a78bfa; }
+.acao-miuda svg { width:18px;height:18px; }
+@media(max-width:560px) {
+ .grade-resumo { grid-template-columns:repeat(2,minmax(0,1fr));gap:12px; }
+ .grade-resumo>.cartao-resumo { padding:18px 14px; }
+ .grade-resumo>.cartao-resumo:last-child:nth-child(odd) { grid-column:1/-1; }
+ .grade-resumo .cartao-resumo-valor { font-size:clamp(.95rem,4.2vw,1.15rem); }
+ .grade-resumo .etiqueta { font-size:.6rem; }
+ .grade-resumo .cartao-resumo-icone { font-size:16px; }
+ .grade-resumo .cartao-resumo-nota { font-size:.72rem; }
+ .lancamento-acoes .acao-miuda { min-width:40px;min-height:40px;display:grid;place-items:center;background:var(--papel);border-radius:10px; }
+}
+
+/* Keep account entry and public footers focused on their primary action. */
+.instalar-app-compacta { padding:18px 0 0;border:0;border-top:1px solid var(--borda);border-radius:0;background:transparent;box-shadow:none; }
+.instalar-app-compacta>.instalar-app-simbolo,.instalar-app-compacta>.publico-selo,.instalar-app-compacta>h2,.instalar-app-compacta>.instalar-app-legenda,.instalar-app-compacta>.instalar-beneficios { display:none; }
+.instalar-app-compacta>.instalacao-estado { font-size:.78rem;margin:0 0 12px; }
+.instalar-app-compacta>.botao { width:100%; }
+.instalar-app-compacta .instalacao-passos { grid-template-columns:minmax(0,1fr);gap:8px; }
+.instalar-app-compacta .instalar-app-ajuda { margin-top:18px;padding-top:18px; }

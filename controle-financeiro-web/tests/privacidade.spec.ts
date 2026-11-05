@@ -63,7 +63,7 @@ test('SAC público explica ajuda e permite acompanhar protocolo autenticado',asy
   await expect(page.getByRole('link',{name:'Entre na sua conta'})).toBeVisible();
   await autenticar(page); await navegar(page,'/atendimento');
   await page.getByLabel('Mensagem',{exact:true}).fill('Preciso de ajuda com um teste de atendimento.');
-  await page.getByRole('button',{name:'Enviar atendimento',exact:true}).click();
+  await page.getByRole('button',{name:'Enviar mensagem',exact:true}).click();
   await expect(page.getByText(/Protocolo:/)).toBeVisible();
   await expect(page.getByText('Aguardando atendimento.')).toBeVisible();
 });

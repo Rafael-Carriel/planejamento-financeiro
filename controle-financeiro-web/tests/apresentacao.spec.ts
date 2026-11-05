@@ -15,7 +15,7 @@ for(const width of [320,390,768,1440]){
     await page.setViewportSize({width,height:900});await page.goto('/#/entrar');
     await expect(page.getByRole('img',{name:'Logo Planeora'})).toBeVisible();
     const marca=page.locator('.entrada-marca-texto');await expect(marca).toContainText('Planeora');
-    await expect(page.getByRole('button',{name:'Instalar aplicativo',exact:true})).toBeVisible();
+    await expect(page.getByRole('button',{name:'Ver como adicionar ao dispositivo',exact:true})).toBeVisible();
     await autenticar(page);await navegar(page,'/assinatura');
     const mais=page.getByRole('button',{name:/Plano Mais: 80 inserções/});await mais.click();
     await expect(mais).toHaveAttribute('aria-pressed','true');await expect(page.locator('.checkout-preco')).toContainText('40,00');
@@ -37,9 +37,9 @@ for(const width of [320,390,768,1440]){
       if(process.env.PLANEJA_PREVIEW_DIR&&width===390)await page.screenshot({path:join(process.env.PLANEJA_PREVIEW_DIR,`conta-${tema}.png`)});
       await page.getByRole('button',{name:'Fechar',exact:true}).first().click();
       await navegar(page,'/atendimento');
-      await expect(page.getByRole('heading',{name:'SAC do Planeora'})).toBeVisible();
-      expect(await contraste(page,'.documento-legal h1')).toBeGreaterThanOrEqual(4.5);
-      expect(await contraste(page,'.acoes-publicas a')).toBeGreaterThanOrEqual(4.5);
+      await expect(page.getByRole('heading',{name:'Central de ajuda'})).toBeVisible();
+      expect(await contraste(page,'.cabecalho h1')).toBeGreaterThanOrEqual(4.5);
+      expect(await contraste(page,'.ajuda-perguntas a')).toBeGreaterThanOrEqual(4.5);
       expect(await contraste(page,'.sac-chamados p')).toBeGreaterThanOrEqual(4.5);
       expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
       await page.reload();await expect(page.locator('html')).toHaveAttribute('data-theme',tema);
@@ -49,14 +49,17 @@ for(const width of [320,390,768,1440]){
   });
 }
 
-test('instalação mostra instruções honestas e usa convite nativo quando disponível',async({page})=>{
-  await page.goto('/#/entrar');const botao=page.getByRole('button',{name:'Instalar aplicativo',exact:true});await botao.click();
-  await expect(page.getByText('Leve o Planeora com você')).toBeVisible();await expect(page.getByText('iPhone e iPad:',{exact:true})).toBeVisible();
+test('instalação mostra orientações e só oferece o instalador quando disponível',async({page})=>{
+  await page.goto('/#/entrar');
+  await page.getByRole('button',{name:'Ver como adicionar ao dispositivo',exact:true}).click();
+  await expect(page.getByRole('heading',{name:'Escolha seu dispositivo'})).toBeVisible();
+  await expect(page.getByText('iPhone ou iPad',{exact:true})).toBeVisible();
   await page.evaluate(()=>{const evento=new Event('beforeinstallprompt',{cancelable:true});Object.assign(evento,{prompt:()=>{document.body.dataset.conviteInstalacao='aberto';return Promise.resolve();},userChoice:Promise.resolve({outcome:'dismissed'})});window.dispatchEvent(evento);});
-  await botao.click();await expect(page.locator('body')).toHaveAttribute('data-convite-instalacao','aberto');
-  await expect(botao).toBeEnabled();
+  await page.getByRole('button',{name:'Instalar Planeora',exact:true}).click();
+  await expect(page.locator('body')).toHaveAttribute('data-convite-instalacao','aberto');
+  await expect(page.getByText(/Instalação cancelada/)).toBeVisible();
   await page.evaluate(()=>window.dispatchEvent(new Event('appinstalled')));
-  await expect(page.getByRole('button',{name:'Aplicativo instalado'})).toBeDisabled();
+  await expect(page.getByText('Aplicativo instalado neste dispositivo.')).toBeVisible();
 });
 
 for(const width of [320,1440]){
@@ -67,15 +70,15 @@ for(const width of [320,1440]){
       await page.getByRole('button',{name:'Mais opções'}).click();
       await page.getByRole('menuitem',{name:'Instalar aplicativo',exact:true}).click();
     }else await page.getByRole('link',{name:'Instalar aplicativo',exact:true}).click();
-    await expect(page.getByRole('heading',{name:'Instalar Planeora',exact:true})).toBeVisible();
+    await expect(page.getByRole('heading',{name:'Aplicativo Planeora',exact:true})).toBeVisible();
     const chamada=page.getByRole('region',{name:'Aplicativo Planeora'});
-    await expect(chamada.getByRole('button',{name:'Instalar aplicativo',exact:true})).toBeVisible();
-    await expect(chamada.getByText('iPhone e iPad:',{exact:true})).toBeVisible();
-    await expect(chamada.getByText('Computador:',{exact:true})).toBeVisible();
+    await expect(chamada.getByRole('button',{name:'Ocultar orientações',exact:true})).toBeVisible();
+    await expect(chamada.getByText('iPhone ou iPad',{exact:true})).toBeVisible();
+    await expect(chamada.getByText('Computador',{exact:true})).toBeVisible();
     expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
     if(process.env.PLANEJA_PREVIEW_DIR)await page.screenshot({path:join(process.env.PLANEJA_PREVIEW_DIR,`instalar-planeora-${width}.png`)});
     await page.evaluate(()=>window.dispatchEvent(new Event('appinstalled')));
-    await expect(chamada.getByRole('button',{name:'Aplicativo instalado'})).toBeDisabled();
+    await expect(chamada.getByText('Aplicativo instalado neste dispositivo.')).toBeVisible();
     await navegar(page,'/');await expect(chamada).toHaveCount(0);
   });
 }

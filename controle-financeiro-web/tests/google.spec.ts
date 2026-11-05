@@ -31,6 +31,7 @@ for(const width of [320,1440]) {
   });
 }
 test('Google preserva nome personalizado e histórico de usuário existente',async({page})=>{
+  await page.clock.setFixedTime(new Date('2026-10-20T12:00:00Z')); // Same month as the historical fixture.
   await semearFirestore(page,[{path:'usuarios/e2e-google',data:{nome:'Meu nome personalizado',email:'google@example.invalid',criadoEm:{__date:'2026-01-01T12:00:00Z'}}},
     {path:`usuarios/e2e-google/aceitesLegais/${VERSAO_LEGAL}`,data:{versao:VERSAO_LEGAL,termosAceitos:true,privacidadeLida:true}},
     {path:'usuarios/e2e-google/transacoes/antiga',data:{descricao:'Registro preservado',tipo:'entrada',valor:123,categoria:'Outros',data:{__date:'2026-10-20T12:00:00Z'}}}]);

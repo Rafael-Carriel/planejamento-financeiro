@@ -1,3 +1,4 @@
+import { Icone } from './Icone';
 import { useMemo, useState } from 'react';
 
 import { useDados } from '../contextos/ContextoDados';
@@ -137,7 +138,7 @@ export function ListaDeLancamentos({ transacoes, comDataNaLinha = false, semAcoe
               aria-label={`Editar ${transacao.descricao}`}
               title="Editar"
             >
-              ✎
+              <Icone nome="editar" />
             </button>
             <button
               type="button"
@@ -146,7 +147,7 @@ export function ListaDeLancamentos({ transacoes, comDataNaLinha = false, semAcoe
               aria-label={`Excluir ${transacao.descricao}`}
               title="Excluir"
             >
-              🗑
+              <Icone nome="excluir" />
             </button>
           </div>
         )}

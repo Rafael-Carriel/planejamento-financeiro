@@ -195,6 +195,7 @@ function ConteudoDoPainel() {
               <CartaoResumo
                 rotulo="Lançamentos"
                 valor={resumo.quantidade}
+                textoValor={String(resumo.quantidade)}
                 cor="saldo"
                 corDaFaixa="var(--borda-forte)"
                 icone="≡"

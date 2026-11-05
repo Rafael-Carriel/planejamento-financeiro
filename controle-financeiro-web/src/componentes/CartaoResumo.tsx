@@ -1,3 +1,4 @@
+import { Icone } from './Icone';
 import { Dinheiro } from './Dinheiro';
 import { comVariaveis } from '../utilitarios/estilo';
 
@@ -29,7 +30,7 @@ export function CartaoResumo({ rotulo, valor, cor, corDaFaixa, nota, icone, text
         <div className="cartao-resumo-titulo">
           {icone ? (
             <span className="cartao-resumo-icone" aria-hidden="true">
-              {icone}
+              <Icone nome={cor === 'entrada' ? 'receitas' : cor === 'saida' ? 'despesas' : 'painel'} />
             </span>
           ) : null}
           <span className="etiqueta">{rotulo}</span>

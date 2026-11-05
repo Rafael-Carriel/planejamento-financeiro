@@ -46,6 +46,7 @@ function Portao() {
   const { pathname } = useLocation();
 
   if (carregando) return <Carregando mensagem="Verificando sua sessão…" />;
+  if (!usuario && pathname === '/atendimento') return <Atendimento />;
   if (!usuario) return pathname === '/' ? <Apresentacao /> : <Entrada key={pathname} modoInicial={pathname === '/criar-conta' ? 'criar' : 'entrar'} />;
   if (aceiteGooglePendente) return <ConfirmacaoGoogle />;
 
@@ -56,6 +57,7 @@ function Portao() {
         <Routes>
           <Route element={<Layout />}>
             <Route index element={<Painel />} />
+            <Route path="atendimento" element={<Atendimento integrado />} />
             <Route path="instalar" element={<Instalacao />} />
             <Route path="receitas" element={<Receitas />} />
             <Route path="despesas" element={<Despesas />} />
@@ -90,7 +92,6 @@ export default function App() {
             <Routes>
               <Route path="/conheca" element={<Apresentacao />} />
               <Route path="/politica-de-privacidade" element={<DocumentosLegais tipo="privacidade" />} />
-              <Route path="/atendimento" element={<Atendimento />} />
               <Route path="/termos-de-uso" element={<DocumentosLegais tipo="termos" />} />
               <Route path="*" element={<Portao />} />
             </Routes>

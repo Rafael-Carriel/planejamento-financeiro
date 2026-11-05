@@ -1,3 +1,4 @@
+import { Icone, type NomeDeIcone } from './Icone';
 import type { ReactNode } from 'react';
 
 /// Estados de tela que aparecem em várias páginas: carregando, vazio e erro.
@@ -26,7 +27,7 @@ export function EstadoVazio({ selo = '🧾', titulo, descricao, acao }: Propried
   return (
     <div className="estado-vazio">
       <span className="estado-vazio-selo" aria-hidden="true">
-        {selo}
+        <Icone nome={({ '📊':'relatorios', '🎯':'objetivos', '🛡':'reserva', '↑':'receitas', '↓':'despesas', '◎':'planejamento', '⟳':'recorrencias' } as Record<string, NomeDeIcone>)[selo] ?? 'historico'} />
       </span>
       <h3>{titulo}</h3>
       <p>{descricao}</p>
