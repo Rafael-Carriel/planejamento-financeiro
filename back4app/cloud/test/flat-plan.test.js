@@ -56,6 +56,8 @@ test('valor ou cliente divergentes nunca liberam Ilimitado',async()=>{
 test('cancelamento preserva acesso pago, evento repetido não reativa, expiração volta à cota',async()=>{
   const ctx=await setup(),p=await seedPaid(ctx);ctx.remote.set('/subscriptions/sub',{});
   await ctx.service.syncPayment(p);await ctx.api('post','/cancel',{});await ctx.service.syncPayment(p);
+  assert.equal(ctx.calls.some(c=>c.path.endsWith('/refund')),false);
+  assert.equal(ctx.calls.filter(c=>c.method==='DELETE'&&c.path==='/subscriptions/sub').length,1);
   let a=(await ctx.api('get','/me')).body;assert.equal(a.unlimited,true);assert.equal(a.subscriptionId,null);assert.equal(a.monthlyPrice,0);
   ctx.setDate('2026-12-08T12:00:00Z');a=(await ctx.api('get','/me')).body;assert.equal(a.unlimited,false);assert.equal(a.limit,20);
 });

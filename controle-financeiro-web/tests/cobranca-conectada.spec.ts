@@ -73,3 +73,22 @@ for (const situacao of ['PENDING', 'APPROVED']) {
     if (situacao === 'PENDING') await expect(resultado).not.toContainText('Cadastro aprovado pelo Asaas');
   });
 }
+
+test('cancelar renovação mantém Ilimitado e informa fim do período pago',async({page})=>{
+  let canceled=false;const operations:string[]=[];
+  await page.route('https://billing.example.invalid/functions/*',async route=>{
+    const operation=route.request().url().split('/').at(-1)!;operations.push(operation);
+    if(operation==='planejaCancel'){canceled=true;await route.fulfill({json:{result:{ok:true}}});return;}
+    await route.fulfill({json:{result:{...state,unlimited:true,limit:null,validUntil:'2026-12-08T03:00:00Z',subscriptionId:canceled?null:'sub-test',canceled,monthlyPrice:canceled?0:19.9}}});
+  });
+  await autenticar(page);await navegar(page,'/assinatura');
+  await page.getByText('Cancelar renovação',{exact:true}).click();
+  await expect(page.getByText(/cancelar não solicita estorno automático/)).toBeVisible();
+  await page.getByRole('button',{name:'Confirmar cancelamento',exact:true}).click();
+  await expect(page.getByText('Renovação cancelada. O acesso já pago continua até a data informada.')).toBeVisible();
+  await expect(page.getByRole('heading',{name:'Ilimitado ativo',exact:true})).toBeVisible();
+  await expect(page.getByText('Acesso pago até 08/12/2026.')).toBeVisible();
+  await expect(page.getByRole('button',{name:'Confirmar cancelamento',exact:true})).toHaveCount(0);
+  expect(operations.filter(o=>o==='planejaCancel')).toHaveLength(1);
+  expect(operations.some(o=>/refund/i.test(o))).toBe(false);
+});

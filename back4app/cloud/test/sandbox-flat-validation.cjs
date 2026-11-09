@@ -11,6 +11,7 @@ const workspace = path.resolve(__dirname, '../../..');
 const key = fs.readFileSync(path.join(workspace, 'work/.env.sandbox-validation'), 'utf8').trim().replace(/^ASAAS_API_KEY=/, '');
 if (!key.startsWith('$aact_')) throw new Error('Missing sandbox key');
 const gateway = async (route, method = 'GET', body, retry = false) => {
+  calls.push({route,method});
   const response = await fetch('https://api-sandbox.asaas.com/v3' + route, { method,
     headers: { access_token: key, 'Content-Type': 'application/json', 'User-Agent': 'Planeja-QA/1.0' },
     body: body === undefined ? undefined : JSON.stringify(body), redirect: 'error', signal: AbortSignal.timeout(20000) });
@@ -24,7 +25,8 @@ const gateway = async (route, method = 'GET', body, retry = false) => {
 };
 const results = [];
 const pass = name => { results.push({ name, result: 'PASS' }); console.log('PASS:', name); };
-let customer, subscription, waitingAuthorization = false;
+let customer, subscription;
+const calls = [];
 async function main() {
   const uid = `planeora-flat-qa-${Date.now()}`;
   customer = await gateway('/customers', 'POST', { name: uid, cpfCnpj: '24971563792', notificationDisabled: true, externalReference: uid });
@@ -47,9 +49,16 @@ async function main() {
   let payment=(await gateway(`/subscriptions/${subscription}/payments?limit=100`)).data[0];
   assert.equal(payment.value,19.9);pass('Cobrança criada no Asaas por R$19,90');
   if(process.argv.includes('--card')) {
-    // Official Asaas sandbox example; synthetic test card, never production.
+    // Approval card from https://docs.asaas.com/docs/faq-sandbox; never production.
+    await assert.rejects(()=>gateway(`/payments/${payment.id}/payWithCreditCard`,'POST',{
+      creditCard:{holderName:'Planeora QA',number:'5184019740373151',expiryMonth:'05',expiryYear:'2030',ccv:'123'},
+      creditCardHolderInfo:{name:'Planeora QA',email:'qa@example.invalid',cpfCnpj:'24971563792',postalCode:'89223005',addressNumber:'277',phone:'4738010919'},remoteIp:'203.0.113.10'
+    }),/HTTP 400/);
+    await service.syncPayment(await gateway(`/payments/${payment.id}`));
+    assert.equal((await me()).unlimited,false);
+    pass('Cartão recusado não libera Ilimitado');
     await gateway(`/payments/${payment.id}/payWithCreditCard`,'POST',{
-      creditCard:{holderName:'Planeora QA',number:'5162306219378829',expiryMonth:'05',expiryYear:'2030',ccv:'318'},
+      creditCard:{holderName:'Planeora QA',number:'4444444444444444',expiryMonth:'05',expiryYear:'2030',ccv:'123'},
       creditCardHolderInfo:{name:'Planeora QA',email:'qa@example.invalid',cpfCnpj:'24971563792',postalCode:'89223005',addressNumber:'277',phone:'4738010919'},remoteIp:'203.0.113.10'
     });
   } else {
@@ -63,23 +72,31 @@ async function main() {
   await service.syncPayment(payment);assert.equal((await me()).unlimited,true);pass('Reprocessamento preserva acesso sem duplicar pagamento');
   response=await api('post','/cancel',{});assert.equal(response.status,200);
   assert.equal((await me()).subscriptionId,null);assert.equal((await me()).unlimited,true);pass('Cancelamento no Asaas preserva período pago');
-  const current=clock;clock=new Date(new Date((await me()).validUntil).getTime()+1000);
-  assert.equal((await me()).unlimited,false);assert.equal((await me()).limit,20);pass('Expiração local do período conciliado retorna ao gratuito');clock=current;
-  await new Promise(resolve=>setTimeout(resolve,15000));
-  await gateway(`/payments/${payment.id}/refund`,'POST',{description:'Homologacao sandbox Planeora Ilimitado'});
-  let refunded;
-  for(let attempt=0;attempt<8;attempt++){
-    refunded=await gateway(`/payments/${payment.id}`);
-    if(refunded.status==='REFUNDED'||refunded.refunds?.some(r=>['DONE','AWAITING_CRITICAL_ACTION_AUTHORIZATION'].includes(r.status)))break;
-    await new Promise(resolve=>setTimeout(resolve,2000));
-  }
-  await service.syncPayment(refunded);
-  if(refunded.status==='REFUNDED'||refunded.refunds?.some(r=>r.status==='DONE')){
-    assert.equal((await me()).unlimited,false);pass('Estorno concluído no Asaas revoga acesso');
-  }else{
-    results.push({name:'Estorno concluído no Asaas',result:'PENDING',status:refunded.status,refunds:refunded.refunds?.map(r=>({status:r.status}))});
-    console.log('PENDING: estorno no provedor; não contado como aprovado');
-  }
+  const canceledSubscriptions=await gateway(`/subscriptions?customer=${customer.id}&limit=100`);
+  assert.equal(canceledSubscriptions.data.filter(s=>!s.deleted&&s.status!=='INACTIVE').length,0);
+  pass('Asaas sem assinatura ativa para gerar próxima renovação');
+  const remaining=await gateway(`/payments?customer=${customer.id}&limit=100`);
+  assert.equal(remaining.data.filter(p=>!p.deleted&&['PENDING','OVERDUE'].includes(p.status)).length,0);
+  pass('Nenhuma cobrança pendente deixada após cancelamento');
+  const retained=await gateway(`/payments/${payment.id}`);
+  assert.ok(['RECEIVED','CONFIRMED'].includes(retained.status));
+  assert.equal((retained.refunds||[]).length,0);
+  assert.equal(calls.some(c=>c.route.endsWith('/refund')),false);
+  pass('Cancelamento não solicita estorno e preserva cobrança paga');
+  response=await api('post','/cancel',{});assert.equal(response.status,200);
+  await service.syncPayment(retained);
+  assert.equal((await me()).subscriptionId,null);assert.equal((await me()).unlimited,true);
+  pass('Cancelar novamente e reconciliar não reativa renovação');
+  const end=new Date((await me()).validUntil).getTime();
+  clock=new Date(end-1);assert.equal((await me()).unlimited,true);
+  clock=new Date(end);assert.equal((await me()).unlimited,false);assert.equal((await me()).limit,20);
+  assert.equal((await db.collection(`usuarios/${uid}/transacoes`).get()).size,55);
+  pass('Acesso termina na data exata sem excluir histórico');
+  const data={descricao:'QA novo mes',tipo:'saida',categoria:'Outros',valor:1,data:clock.toISOString()};
+  for(let i=0;i<20;i++)assert.equal((await api('post','/transactions',{id:`free-${i}`,data})).status,200);
+  assert.equal((await api('post','/transactions',{id:'free-blocked',data})).status,402);
+  pass('Após vencimento: 20 registros gratuitos, 21º bloqueado');
+
 }
 main().catch(error=>{results.push({name:'Integração',result:'FAIL',message:error.message});console.error(error.message);process.exitCode=1;}).finally(async()=>{
   try{if(subscription)await gateway(`/subscriptions/${subscription}`,'DELETE');if(customer)await gateway(`/customers/${customer.id}`,'DELETE');pass('Entidades exclusivas do teste arquivadas');}

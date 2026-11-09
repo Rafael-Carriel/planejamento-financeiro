@@ -55,7 +55,7 @@ export function Assinatura() {
         {a?.validUntil && <p>Acesso pago até {new Date(a.validUntil).toLocaleDateString('pt-BR')}.</p>}
         {contratado && <p>Renovação mensal: {moeda(a?.monthlyPrice ?? PLANO.preco)}. {a?.unlimited ? '' : 'Aguardando confirmação de pagamento.'}</p>}
         {a?.canceled && <p>Renovação cancelada. Ao terminar o período pago, volta a valer a cota gratuita do mês.</p>}
-        {contratado && <details><summary>Cancelar renovação</summary><p>As próximas mensalidades serão canceladas. Seus registros permanecem acessíveis.</p><button className="botao botao-contorno" disabled={ocupado} onClick={() => void cancelar()}>Confirmar cancelamento</button></details>}
+        {contratado && <details><summary>Cancelar renovação</summary><p>Você não terá a próxima renovação. O acesso continua até o fim do período já pago; cancelar não solicita estorno automático. Seus registros permanecem acessíveis.</p><button className="botao botao-contorno" disabled={ocupado} onClick={() => void cancelar()}>Confirmar cancelamento</button></details>}
       </section>
       <section className="assinatura-card checkout-plano" aria-labelledby="titulo-contratacao">
         <div className="checkout-resumo"><span className="assinatura-selo">PLANEORA ILIMITADO</span><h2 id="titulo-contratacao">Registre sem contar lançamentos</h2><p className="checkout-preco">{moeda(PLANO.preco)}<span>por mês, até cancelar</span></p><ul><li>Receitas e despesas sem limite de registros</li><li>Planejamento, recorrências e objetivos</li><li>Relatórios e exportação do histórico</li><li>Mesma conta no celular e computador</li></ul><p>Registro manual, sem conexão bancária automática.</p></div>
