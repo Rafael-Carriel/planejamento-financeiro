@@ -1,2 +1,2 @@
-export const ATENDIMENTO = { nome: 'Planeora', rota: '/atendimento' };
-export const VERSAO_LEGAL = '2026-10-20';
+export const ATENDIMENTO = { nome: 'Planeora', rota: '/atendimento', email: 'suportplaneora@gmail.com' };
+export const VERSAO_LEGAL = '2026-11-07';

@@ -1,6 +1,7 @@
 'use strict';
+const { mountAnalytics, hash } = require('./analytics');
 const { timingSafeEqual, randomUUID } = require('node:crypto');
-const { FREE, BLOCK_SIZE, BLOCK_PRICE, blocks, period, monthAfter, entitlement, paid, validTransactionDate } = require('./policy');
+const { FLAT_PLAN, FLAT_PRICE, legacyAccount, FREE, BLOCK_SIZE, BLOCK_PRICE, blocks, period, monthAfter, entitlement, paid, validTransactionDate } = require('./policy');
 
 function fail(status, message) { throw Object.assign(new Error(message), { status }); }
 function safeEqual(a, b) {
@@ -70,12 +71,20 @@ function mount(app, { db, auth, asaas, env, now = () => new Date() }) {
     if (!isAdmin(req.user)) return next(Object.assign(new Error('Acesso exclusivo do administrador.'), { status: 403 }));
     next();
   }
+  mountAnalytics(app, { db, auth, env, now, requireUser, requireAdmin, route, fail });
   async function requireActive() {
     const data = (await config.get()).data();
     if (!data?.enabled || data.usageMode !== env.USAGE_MODE) fail(503, 'A cobrança ainda não foi ativada.');
   }
+  async function accountPolicy(uid) {
+    const [settings, account] = await Promise.all([config.get(), accounts.doc(uid).get()]);
+    const data = account.data() || {};
+    const flat = env.BILLING_MODEL === FLAT_PLAN && settings.data()?.billingModel === FLAT_PLAN && !legacyAccount(data, now());
+    return { flat, data, mode: flat ? 'monthly' : env.USAGE_MODE };
+  }
   async function usage(uid) {
-    const key = period(now(), env.USAGE_MODE);
+    const { mode } = await accountPolicy(uid);
+    const key = period(now(), mode);
     const ref = db.doc(`billingAccounts/${uid}/usage/${key}`);
     const settings = (await config.get()).data();
     if (!settings?.enabled) {
@@ -90,7 +99,7 @@ function mount(app, { db, auth, asaas, env, now = () => new Date() }) {
       const activationId = settings.activationId || 'initial';
       if (meter.exists && meter.data().activationId === activationId) return;
       let query = db.collection(`usuarios/${uid}/transacoes`);
-      if (env.USAGE_MODE === 'monthly') query = query.where('criadoEm', '>=', new Date(`${key}-01T00:00:00-03:00`));
+      if (mode === 'monthly') query = query.where('criadoEm', '>=', new Date(`${key}-01T00:00:00-03:00`));
       const existing = await tx.get(query);
       tx.set(ref, { count: Math.max(existing.size, meter.data()?.count || 0), period: key, activationId, updatedAt: now() });
     });
@@ -100,13 +109,16 @@ function mount(app, { db, auth, asaas, env, now = () => new Date() }) {
     const [account, used, settings] = await Promise.all([accounts.doc(user.uid).get(), usage(user.uid), config.get()]);
     const data = account.data() || {};
     const quantity = entitlement(data, now());
+    const policy = await accountPolicy(user.uid);
+    const unlimited = quantity > 0 && data.paidPlanVersion === FLAT_PLAN;
     const recent = await payments.where('uid', '==', user.uid).get();
     return {
       enabled: settings.data()?.enabled === true && settings.data()?.usageMode === env.USAGE_MODE,
-      environment: env.ASAAS_ENV, usageMode: env.USAGE_MODE, admin: isAdmin(user),
-      count: used.count, period: used.key, blocks: quantity, limit: FREE + quantity * BLOCK_SIZE,
-      monthlyPrice: (data.subscriptionBlocks || 0) * BLOCK_PRICE,
-      validUntil: data.validUntil?.toDate?.().toISOString() || null,
+      environment: env.ASAAS_ENV, usageMode: policy.mode, admin: isAdmin(user),
+      planVersion: policy.flat ? FLAT_PLAN : 'legacy', legacy: legacyAccount(data, now()), unlimited,
+      count: used.count, period: used.key, blocks: quantity, limit: unlimited ? null : policy.flat ? FREE : FREE + quantity * BLOCK_SIZE,
+      monthlyPrice: data.subscriptionId && !data.canceled && data.subscriptionPlanVersion === FLAT_PLAN ? FLAT_PRICE : (data.subscriptionBlocks || 0) * BLOCK_PRICE,
+      validUntil: data.validUntil ? new Date(data.validUntil.toDate?.() || data.validUntil).toISOString() : null,
       subscriptionId: data.subscriptionId || null, canceled: data.canceled === true,
       payments: recent.docs.map(serialize).sort((a, b) => String(b.dueDate).localeCompare(String(a.dueDate))).slice(0, 24),
     };
@@ -125,19 +137,23 @@ function mount(app, { db, auth, asaas, env, now = () => new Date() }) {
       (d.observacao != null && (typeof d.observacao !== 'string' || d.observacao.length > 500)) ||
       (d.recorrenciaId != null && (typeof d.recorrenciaId !== 'string' || d.recorrenciaId.length > 64))) fail(400, 'Confira os dados do lançamento.');
     const used = await usage(req.user.uid);
+    const policy = await accountPolicy(req.user.uid);
     const ref = db.doc(`usuarios/${req.user.uid}/transacoes/${input.id}`);
     const accountRef = accounts.doc(req.user.uid);
     await db.runTransaction(async tx => {
       const [record, meter, account] = await Promise.all([tx.get(ref), tx.get(used.ref), tx.get(accountRef)]);
       if (record.exists) return; // Stable request ID: retries and recurrence replays do not consume twice.
       const count = meter.data().count;
-      const limit = FREE + entitlement(account.data(), now()) * BLOCK_SIZE;
-      if (!isAdmin(req.user) && count >= limit) fail(402, `Você chegou ao limite de ${limit} inserções. Abra Assinatura para liberar mais 30.`);
+      const active = entitlement(account.data(), now());
+      const unlimited = active > 0 && account.data()?.paidPlanVersion === FLAT_PLAN;
+      const limit = policy.flat ? FREE : FREE + active * BLOCK_SIZE;
+      if (!isAdmin(req.user) && !unlimited && count >= limit) fail(402, policy.flat ? 'Você usou os 20 lançamentos gratuitos deste mês. Assine o Ilimitado ou aguarde a renovação no próximo mês.' : `Você chegou ao limite de ${limit} inserções do plano anterior. Consulte sua assinatura.`);
       tx.create(ref, { descricao: d.descricao.trim(), valor: d.valor, tipo: d.tipo, categoria: d.categoria,
         data: new Date(d.data), observacao: d.observacao?.trim() || null, recorrenciaId: d.recorrenciaId || null,
         criadoEm: now(), atualizadoEm: now() });
       tx.update(used.ref, { count: count + 1, updatedAt: now() });
-      tx.set(accountRef, { lastActivityAt: now() }, { merge: true });
+      tx.set(accountRef, { lastActivityAt: now(), firstTransactionAt: account.data()?.firstTransactionAt || now(), totalCreated: (account.data()?.totalCreated || 0) + 1 }, { merge: true });
+      if (!account.data()?.firstTransactionAt) tx.set(db.doc(`productEvents/first-${hash(req.user.uid)}`), { name: 'first_transaction_created', actor: hash(req.user.uid), origin: 'server', createdAt: now(), expiresAt: new Date(now().getTime()+90*86400000) });
     });
     res.json({ ok: true });
   }));
@@ -158,7 +174,11 @@ function mount(app, { db, auth, asaas, env, now = () => new Date() }) {
 
   app.post('/billing/checkout', requireUser, route(async (req, res) => {
     await requireActive();
-    const quantity = blocks(req.body.blocks);
+    const flat = req.body.planId === FLAT_PLAN;
+    const settings = (await config.get()).data();
+    if (flat && (env.BILLING_MODEL !== FLAT_PLAN || settings?.billingModel !== FLAT_PLAN)) fail(503, 'O novo plano ainda não foi liberado.');
+    if (!flat && env.BILLING_MODEL === FLAT_PLAN && !legacyAccount((await accounts.doc(req.user.uid).get()).data(), now())) fail(400, 'Escolha o plano Ilimitado atualizado.');
+    const quantity = flat ? 1 : blocks(req.body.blocks);
     if (req.body.accepted !== true) fail(400, 'Confirme a contratação mensal antes de continuar.');
     const user = { ...req.user, displayName: req.user.name || '' };
     if (!user.email_verified) fail(403, 'Confirme seu e-mail antes de contratar.');
@@ -171,17 +191,19 @@ function mount(app, { db, auth, asaas, env, now = () => new Date() }) {
         const pending = await tx.get(orders.doc(data.pendingOrder));
         if (pending.exists && !['paid', 'canceled'].includes(pending.data().state)) {
           selected = { id: pending.id, ...pending.data() };
-          if (selected.blocks !== quantity) fail(409, 'Conclua ou cancele a cobrança pendente antes de trocar o plano.');
+          if (selected.planVersion !== (flat ? FLAT_PLAN : undefined) || selected.blocks !== quantity) fail(409, 'Conclua ou cancele a cobrança pendente antes de trocar o plano.');
           return;
         }
       }
       const current = entitlement(data, now());
+      if (flat && (data.subscriptionId || (current && data.paidPlanVersion !== FLAT_PLAN))) fail(409, 'Seu plano atual será preservado. Cancele a renovação e aguarde o período pago terminar antes de contratar o novo plano.');
       if (data.subscriptionId && quantity <= Math.max(current, data.subscriptionBlocks || 0)) fail(409, 'Esse plano já está contratado. Consulte as cobranças abaixo.');
       if (data.subscriptionId && !current) fail(409, 'Regularize a mensalidade pendente antes de aumentar o plano.');
       if (!data.customerId && !/^\d{11}$|^\d{14}$/.test(String(req.body.cpfCnpj || '').replace(/\D/g, ''))) fail(400, 'Informe um CPF ou CNPJ válido para a cobrança.');
       selected = { id: orderRef.id, uid, blocks: quantity, kind: data.subscriptionId ? 'upgrade' : 'subscription',
-        value: (data.subscriptionId ? quantity - current : quantity) * BLOCK_PRICE, state: 'creating', createdAt: now(),
-        acceptedAt: now(), termsVersion: '2026-10-20',
+        ...(flat ? { planVersion: FLAT_PLAN } : {}),
+        value: flat ? FLAT_PRICE : (data.subscriptionId ? quantity - current : quantity) * BLOCK_PRICE, state: 'creating', createdAt: now(),
+        acceptedAt: now(), termsVersion: flat ? '2026-11-07' : '2026-10-20',
         basePaymentId: data.basePaymentId || null, validUntil: data.validUntil || null,
         customerId: data.customerId || null, existingSubscriptionId: data.subscriptionId || null };
       tx.create(orderRef, selected);
@@ -203,10 +225,10 @@ function mount(app, { db, auth, asaas, env, now = () => new Date() }) {
     const today = new Intl.DateTimeFormat('sv-SE', { timeZone: 'America/Sao_Paulo' }).format(now());
     if (selected.kind === 'subscription') {
       const subscription = await asaas('/subscriptions', 'POST', { customer: customerId, billingType: 'UNDEFINED',
-        value: quantity * BLOCK_PRICE, nextDueDate: today, cycle: 'MONTHLY',
-        description: `Planeora: ${FREE + quantity * BLOCK_SIZE} inserções — ${quantity * BLOCK_PRICE} reais/mês`, externalReference: selected.id });
+        value: selected.value, nextDueDate: today, cycle: 'MONTHLY',
+        description: flat ? 'Planeora Ilimitado — R$19,90/mês' : `Planeora: ${FREE + quantity * BLOCK_SIZE} inserções — ${quantity * BLOCK_PRICE} reais/mês`, externalReference: selected.id });
       await orderRef.set({ subscriptionId: subscription.id, state: 'pending' }, { merge: true });
-      await ref.set({ subscriptionId: subscription.id, subscriptionBlocks: quantity, canceled: false }, { merge: true });
+      await ref.set({ subscriptionId: subscription.id, subscriptionBlocks: quantity, subscriptionPlanVersion: flat ? FLAT_PLAN : null, canceled: false }, { merge: true });
     } else {
       const payment = await asaas('/payments', 'POST', { customer: customerId, billingType: 'UNDEFINED', value: selected.value,
         dueDate: today, description: `Planeora: ampliação para ${FREE + quantity * BLOCK_SIZE} inserções no período vigente`, externalReference: selected.id });
@@ -226,7 +248,7 @@ function mount(app, { db, auth, asaas, env, now = () => new Date() }) {
     if (!found) return order;
     const patch = { [order.kind === 'subscription' ? 'subscriptionId' : 'paymentId']: found.id, customerId, state: 'pending' };
     await orders.doc(order.id).set(patch, { merge: true });
-    if (order.kind === 'subscription') await accounts.doc(order.uid).set({ subscriptionId: found.id, subscriptionBlocks: order.blocks, canceled: false }, { merge: true });
+    if (order.kind === 'subscription') await accounts.doc(order.uid).set({ subscriptionId: found.id, subscriptionBlocks: order.blocks, subscriptionPlanVersion: order.planVersion || null, canceled: false }, { merge: true });
     return { ...order, ...patch };
   }
 
@@ -249,7 +271,7 @@ function mount(app, { db, auth, asaas, env, now = () => new Date() }) {
       const currentAccount = (await accounts.doc(order.uid).get()).data() || {};
       // Historical payments must never reactivate a canceled or replaced subscription.
       if (!currentAccount.canceled && (currentAccount.subscriptionId === payment.subscription || currentAccount.pendingOrder === order.id)) {
-        await accounts.doc(order.uid).set({ subscriptionId: payment.subscription, subscriptionBlocks: currentAccount.subscriptionBlocks || order.blocks }, { merge: true });
+        await accounts.doc(order.uid).set({ subscriptionId: payment.subscription, subscriptionBlocks: currentAccount.subscriptionBlocks || order.blocks, subscriptionPlanVersion: order.planVersion || null }, { merge: true });
       }
     } else if (payment.externalReference && /^[A-Za-z0-9_-]{1,200}$/.test(payment.externalReference)) {
       const candidate = await orders.doc(payment.externalReference).get();
@@ -260,7 +282,9 @@ function mount(app, { db, auth, asaas, env, now = () => new Date() }) {
     const accountRef = accounts.doc(order.uid);
     const account = (await accountRef.get()).data() || {};
     if (payment.customer !== (order.customerId || account.customerId)) fail(409, 'Cliente divergente na cobrança.');
-    const quantity = order.kind === 'subscription' ? payment.value / BLOCK_PRICE : order.blocks;
+    const flat = order.planVersion === FLAT_PLAN;
+    if (flat && Math.round(payment.value * 100) !== Math.round(FLAT_PRICE * 100)) fail(409, 'Valor divergente na cobrança.');
+    const quantity = flat ? 1 : order.kind === 'subscription' ? payment.value / BLOCK_PRICE : order.blocks;
     if (!Number.isInteger(quantity) || quantity < 1 || quantity > 100 ||
       (order.kind === 'upgrade' && payment.value !== order.value)) fail(409, 'Valor divergente na cobrança.');
     const until = order.kind === 'upgrade' ? order.validUntil : monthAfter(payment.dueDate);
@@ -268,8 +292,9 @@ function mount(app, { db, auth, asaas, env, now = () => new Date() }) {
       .reduce((total, refund) => total + Number(refund.value || 0), 0);
     const ref = payments.doc(payment.id);
     await db.runTransaction(async tx => {
-      const [previous, existing] = await Promise.all([tx.get(ref), tx.get(payments.where('uid', '==', order.uid))]);
-      const entry = { uid: order.uid, orderId: order.id, value: payment.value, blocks: quantity,
+      const eventRef = db.doc(`productEvents/payment-${hash(payment.id)}`);
+      const [previous, existing, paymentEvent] = await Promise.all([tx.get(ref), tx.get(payments.where('uid', '==', order.uid)), tx.get(eventRef)]);
+      const entry = { uid: order.uid, orderId: order.id, value: payment.value, blocks: quantity, planVersion: order.planVersion || null,
         kind: order.kind, basePaymentId: order.basePaymentId || null, validUntil: until,
         status: payment.deleted ? 'DELETED' : refundedValue >= payment.value ? 'REFUNDED' : payment.status,
         refundedValue, dueDate: payment.dueDate,
@@ -282,16 +307,20 @@ function mount(app, { db, auth, asaas, env, now = () => new Date() }) {
       const extras = base ? all.filter(p => p.kind === 'upgrade' && p.basePaymentId === base.id && paid(p.status)) : [];
       tx.set(ref, entry);
       tx.set(accountRef, { blocks: base ? Math.max(base.blocks, ...extras.map(p => p.blocks)) : 0,
+        paidPlanVersion: base?.planVersion || null,
         validUntil: base?.validUntil || null, basePaymentId: base?.id || null, updatedAt: now(),
         ...(order.kind === 'upgrade' && paid(entry.status) && !paid(previous.data()?.status) ? { syncSubscriptionBlocks: order.blocks } : {}) }, { merge: true });
-      if (paid(entry.status)) tx.set(orders.doc(order.id), { state: 'paid' }, { merge: true });
+      if (paid(entry.status)) {
+        tx.set(orders.doc(order.id), { state: 'paid' }, { merge: true });
+        if (order.kind === 'subscription' && !paymentEvent.exists) tx.set(eventRef, { name: existing.docs.some(d => d.id !== payment.id && d.data().kind === 'subscription' && paid(d.data().status)) ? 'subscription_renewed' : 'subscription_paid', actor: hash(order.uid), origin: 'server', createdAt: now(), expiresAt: new Date(now().getTime()+90*86400000), subscriptionRevenue: payment.value, currency: 'BRL' });
+      }
     });
     await syncSubscription(order.uid);
   }
 
   async function syncSubscription(uid) {
     const ref = accounts.doc(uid), account = (await ref.get()).data();
-    if (!account?.syncSubscriptionBlocks || !account.subscriptionId || account.canceled) return;
+    if (!account?.syncSubscriptionBlocks || !account.subscriptionId || account.canceled || account.subscriptionPlanVersion === FLAT_PLAN) return;
     const quantity = Math.max(account.syncSubscriptionBlocks, account.subscriptionBlocks || 0);
     await asaas(`/subscriptions/${encodeURIComponent(account.subscriptionId)}`, 'PUT', {
       value: quantity * BLOCK_PRICE, updatePendingPayments: false,
@@ -339,6 +368,7 @@ function mount(app, { db, auth, asaas, env, now = () => new Date() }) {
       await orders.doc(account.pendingOrder).set({ state: 'canceled' }, { merge: true });
     }
     await ref.set({ subscriptionId: null, pendingOrder: null }, { merge: true });
+    if (account.subscriptionId && !account.canceled) await db.doc(`productEvents/cancel-${hash(account.subscriptionId)}`).set({ name: 'subscription_canceled', actor: hash(req.user.uid), origin: 'server', createdAt: now(), expiresAt: new Date(now().getTime()+90*86400000) });
     res.json({ ok: true });
   }));
 
@@ -354,8 +384,8 @@ function mount(app, { db, auth, asaas, env, now = () => new Date() }) {
       return { uid: user.uid, email: user.email, name: user.displayName, disabled: false,
         createdAt: profile.criadoEm?.toDate?.().toISOString() || null, lastSignIn: null,
         admin: isAdmin(user), count: used.count, blocks: entitlement(data, now()),
-        limit: FREE + entitlement(data, now()) * BLOCK_SIZE, price: (data.subscriptionBlocks || 0) * BLOCK_PRICE,
-        validUntil: data.validUntil?.toDate?.().toISOString() || null, canceled: data.canceled === true };
+        limit: entitlement(data, now()) && data.paidPlanVersion === FLAT_PLAN ? null : FREE + entitlement(data, now()) * BLOCK_SIZE, price: data.subscriptionId && !data.canceled && data.subscriptionPlanVersion === FLAT_PLAN ? FLAT_PRICE : (data.subscriptionBlocks || 0) * BLOCK_PRICE,
+        validUntil: data.validUntil ? new Date(data.validUntil.toDate?.() || data.validUntil).toISOString() : null, canceled: data.canceled === true };
     }));
     res.json({ users, nextCursor: page.size === 50 ? page.docs.at(-1).id : null });
   }));
@@ -369,7 +399,7 @@ function mount(app, { db, auth, asaas, env, now = () => new Date() }) {
     res.json({ connected: true, environment: env.ASAAS_ENV, account });
   }));
   app.post('/billing/admin/activate', requireUser, requireAdmin, route(async (_req, res) => {
-    await config.set({ enabled: true, usageMode: 'lifetime', activationId: randomUUID(), updatedAt: now() });
+    await config.set({ enabled: true, usageMode: env.USAGE_MODE, ...(env.BILLING_MODEL === FLAT_PLAN ? { billingModel: FLAT_PLAN } : {}), activationId: randomUUID(), updatedAt: now() });
     res.json({ ok: true });
   }));
   app.post('/billing/sync', requireUser, route(async (req, res) => {

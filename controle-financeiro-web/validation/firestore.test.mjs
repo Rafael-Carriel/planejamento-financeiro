@@ -171,3 +171,26 @@ test('lembretes privados aceitam leitura/dispensa sem ampliar acesso nem alterar
   await assertFails(updateDoc(ref,{descartado:'sim'}));await assertFails(setDoc(doc(dono,'usuarios/user-b/lembretes/invasao'),aviso));
   await assertFails(setDoc(doc(dono,'billingSystem/config'),{enabled:false}));
 });
+
+test('preferências do guia são privadas e aceitam somente campos previstos', async () => {
+  const own = env.authenticatedContext('user-a').firestore();
+  const other = env.authenticatedContext('user-b').firestore();
+  const path = 'usuarios/user-a/preferencias/inicio';
+  const value = { oculto: false, saldoVisto: true, atualizadoEm: serverTimestamp() };
+  await assertSucceeds(setDoc(doc(own, path), value));
+  await assertSucceeds(getDoc(doc(own, path)));
+  await assertFails(getDoc(doc(other, path)));
+  await assertFails(setDoc(doc(other, path), value));
+  await assertFails(setDoc(doc(own, path), { ...value, admin: true }));
+  await assertFails(setDoc(doc(own, path), { ...value, oculto: 'sim' }));
+  await assertFails(getDocs(collection(own, 'productEvents')));
+  await assertFails(setDoc(doc(own, 'productEvents/forged'), { name: 'subscription_paid' }));
+});
+
+test('aceite da nova versão é privado e imutável', async () => {
+  const db = env.authenticatedContext('user-a').firestore();
+  const ref = doc(db, 'usuarios/user-a/aceitesLegais/2026-11-07');
+  await assertSucceeds(setDoc(ref, { versao: '2026-11-07', termosAceitos: true, privacidadeLida: true, criadoEm: serverTimestamp() }));
+  await assertFails(updateDoc(ref, { termosAceitos: false }));
+  await assertFails(deleteDoc(ref));
+});

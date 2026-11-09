@@ -7,6 +7,7 @@ import { TelaDeConfiguracao } from './paginas/TelaDeConfiguracao';
 import './index.css';
 import './estilos/interface.css';
 import './estilos/tipografia.css';
+import './estilos/melhorias.css';
 
 /// Ponto de partida.
 ///

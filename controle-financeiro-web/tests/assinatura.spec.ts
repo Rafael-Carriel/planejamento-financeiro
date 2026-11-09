@@ -4,14 +4,13 @@ import { join } from 'node:path';
 
 test.beforeEach(async ({ page }) => { await autenticar(page); });
 
-test('explica consumo acumulado, faixas e não permite cobrar sem integração', async ({ page }) => {
+test('explica cota mensal, plano ilimitado e não permite cobrar sem integração', async ({ page }) => {
   await navegar(page, '/assinatura');
   await expect(page.getByRole('heading', { name: 'Sua assinatura' })).toBeVisible();
-  await expect(page.getByText('50 inserções acumuladas', { exact: true })).toBeVisible();
+  await expect(page.getByText('Registre sem contar lançamentos', { exact: true })).toBeVisible();
   await expect(page.getByRole('button', { name: 'Continuar para pagamento' })).toBeDisabled();
-  await page.getByRole('button', { name: /Plano Mais: 80 inserções/ }).click();
-  await expect(page.getByText('80 inserções acumuladas', { exact: true })).toBeVisible();
-  await expect(page.locator('.checkout-preco')).toContainText('40,00');
+  await expect(page.getByText(/A cota renova no primeiro dia/)).toBeVisible();
+  await expect(page.locator('.checkout-preco')).toContainText('19,90');
   if (process.env.PLANEJA_PREVIEW_DIR) await page.screenshot({ path: join(process.env.PLANEJA_PREVIEW_DIR, 'assinatura-preview.png'), fullPage: true });
 });
 

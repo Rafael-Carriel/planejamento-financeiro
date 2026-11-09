@@ -8,7 +8,7 @@ test('documentos legais são públicos e o nome é Planeora',async({page})=>{
   await expect(page.getByText(/Atendimento do Planeora/)).toBeVisible();
   await page.getByRole('link',{name:'Termos de Uso',exact:true}).click();
   await expect(page.getByRole('heading',{name:'Termos de Uso',exact:true})).toBeVisible();
-  await expect(page).toHaveTitle('Planeora');
+  await expect(page).toHaveTitle('Planeora — organize suas finanças');
 });
 test('cadastro exige aceite expresso dos termos',async({page})=>{
   await page.goto('/#/entrar');
@@ -50,7 +50,7 @@ test('cadastro registra versão aceita e preserva nome e data após recarregar',
   }
   const before=await exportar();
   expect(before.perfil.nome).toBe('Pessoa Cadastro');
-  expect(before.aceitesLegais[0]).toMatchObject({versao:'2026-10-20',termosAceitos:true,privacidadeLida:true});
+  expect(before.aceitesLegais[0]).toMatchObject({versao:'2026-11-07',termosAceitos:true,privacidadeLida:true});
   // The in-memory SDK resets on reload; preserve the server-side profile as a seed.
   await semearFirestore(page,[{path:`usuarios/${before.conta.uid}`,data:{...before.perfil,criadoEm:{__date:before.perfil.criadoEm},atualizadoEm:{__date:before.perfil.atualizadoEm}}}]);
   await page.reload(); const after=await exportar();
@@ -60,7 +60,8 @@ test('cadastro registra versão aceita e preserva nome e data após recarregar',
 test('SAC público explica ajuda e permite acompanhar protocolo autenticado',async({page})=>{
   await page.goto('/#/atendimento');
   await expect(page.getByRole('heading',{name:'SAC do Planeora'})).toBeVisible();
-  await expect(page.getByRole('link',{name:'Entre na sua conta'})).toBeVisible();
+  await page.getByRole('link',{name:'Entre na sua conta'}).click();
+  await expect(page.getByLabel('E-mail',{exact:true})).toBeVisible();
   await autenticar(page); await navegar(page,'/atendimento');
   await page.getByLabel('Mensagem',{exact:true}).fill('Preciso de ajuda com um teste de atendimento.');
   await page.getByRole('button',{name:'Enviar mensagem',exact:true}).click();

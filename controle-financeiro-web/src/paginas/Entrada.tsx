@@ -1,4 +1,4 @@
-import { InstalarAplicativo } from '../componentes/InstalarAplicativo';
+import { medir } from '../servicos/metricas';
 import { useState, type FormEvent } from 'react';
 
 import { useAutenticacao } from '../contextos/ContextoAutenticacao';
@@ -35,6 +35,7 @@ export function Entrada({ modoInicial = 'entrar' }: { modoInicial?: Modo }) {
 
   async function continuarComGoogle() {
     definirErro(null); definirRecado(null); definirEnviando(true);
+    void medir('signup_started');
     try { await entrarComGoogle(); }
     catch (e) { definirErro(mensagemDeErro(e)); }
     finally { definirEnviando(false); }
@@ -73,7 +74,7 @@ export function Entrada({ modoInicial = 'entrar' }: { modoInicial?: Modo }) {
     definirEnviando(true);
     try {
       if (modo === 'entrar') await entrar(email, senha);
-      else await criarConta(nome, email, senha);
+      else { void medir('signup_started'); await criarConta(nome, email, senha); void medir('signup_completed'); }
       // Não é preciso navegar: o observador de sessão troca a tela sozinho.
     } catch (falha) {
       definirErro(mensagemDeErro(falha));
@@ -229,7 +230,7 @@ export function Entrada({ modoInicial = 'entrar' }: { modoInicial?: Modo }) {
               </button>
             ) : null}
           </form>
-          <InstalarAplicativo /><nav className="links-legais" aria-label="Informações legais"><Link to="/conheca">Conhecer o Planeora</Link><Link to="/atendimento">SAC e ajuda</Link><Link to="/politica-de-privacidade">Privacidade</Link><Link to="/termos-de-uso">Termos de Uso</Link></nav>
+          <nav className="links-legais" aria-label="Informações legais"><Link to="/conheca">Conhecer o Planeora</Link><Link to="/atendimento">SAC e ajuda</Link><Link to="/politica-de-privacidade">Privacidade</Link><Link to="/termos-de-uso">Termos de Uso</Link></nav>
         </div>
       </section>
     </div>

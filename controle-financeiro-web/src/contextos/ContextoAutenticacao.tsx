@@ -1,3 +1,4 @@
+import { medir } from '../servicos/metricas';
 import {
   createContext,
   useCallback,
@@ -73,6 +74,7 @@ export function ProvedorDeAutenticacao({ children }: { children: ReactNode }) {
         }
         if (!ativo || atual !== revisao) return;
         definirUsuario(usuarioAtual);
+        if (usuarioAtual && !pendente) void medir('return_visit');
         definirAceiteGooglePendente(pendente);
         definirCarregando(false);
       })();
@@ -117,6 +119,7 @@ export function ProvedorDeAutenticacao({ children }: { children: ReactNode }) {
       confirmarAceiteGoogle: async () => {
         if (!usuario) throw new Error('Entre novamente para continuar.');
         await registrarAceiteLegal(usuario.uid);
+        void medir('signup_completed');
         definirAceiteGooglePendente(false);
       },
       entrar: async (email, senha) => {

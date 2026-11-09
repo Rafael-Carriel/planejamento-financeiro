@@ -1,3 +1,4 @@
+import { Funil } from '../componentes/Funil';
 import { Chamados } from './Atendimento';
 import { useEffect, useState } from 'react';
 import { CabecalhoDaPagina } from '../componentes/CabecalhoDaPagina';
@@ -74,9 +75,9 @@ export function Administracao() {
     </div>
     <section className="assinatura-card assinatura-historico"><h2>Usuários</h2>
       <label className="assinatura-campo">Buscar nos usuários carregados<input type="search" placeholder="Nome, e-mail ou identificador" value={busca} onChange={e => buscar(e.target.value)} disabled={!assinatura?.admin} /></label>
-      <div className="assinatura-tabela"><table><thead><tr><th>Usuário</th><th>Consumo acumulado</th><th>Mensalidade</th><th>Acesso até</th><th>Situação</th></tr></thead>
+      <div className="assinatura-tabela"><table><thead><tr><th>Usuário</th><th>Consumo no período</th><th>Mensalidade</th><th>Acesso até</th><th>Situação</th></tr></thead>
         <tbody>{visiveis.map(u => <tr key={u.uid}><td><strong>{u.name || 'Sem nome'}</strong><br />{u.email}<br /><small>{u.uid}</small></td>
-          <td>{u.count} / {u.limit}{u.admin ? ' · administrador' : ''}</td><td>{moeda(u.price)}</td>
+          <td>{u.count} / {u.limit ?? "ilimitado"}{u.admin ? ' · administrador' : ''}</td><td>{moeda(u.price)}</td>
           <td>{u.validUntil ? new Date(u.validUntil).toLocaleDateString('pt-BR') : '—'}</td>
           <td>{u.disabled ? 'Desativado' : u.canceled ? 'Renovação cancelada' : u.blocks > 0 ? 'Plano pago' : 'Gratuito'}</td></tr>)}</tbody></table></div>
       {!visiveis.length && <p>{assinatura?.admin ? 'Nenhum usuário encontrado nesta página.' : 'Os usuários aparecerão após a conexão e autorização.'}</p>}
@@ -93,6 +94,6 @@ export function Administracao() {
       {!pagamentosVisiveis.length && <p>Nenhuma cobrança disponível.</p>}
       {cursorPagamentos && <button className="botao" disabled={ocupado} onClick={() => void carregar('pagamentos', true)}>Carregar mais pagamentos</button>}
     </section>
-    {assinatura?.admin && <><Chamados administrador /><SolicitacoesPrivacidade /></>}
+    {assinatura?.admin && <><Funil /><Chamados administrador /><SolicitacoesPrivacidade /></>}
   </>;
 }

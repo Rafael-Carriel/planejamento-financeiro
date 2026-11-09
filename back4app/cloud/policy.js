@@ -1,6 +1,11 @@
 'use strict';
 
 const FREE = 20;
+const FLAT_PLAN = 'flat-v1';
+const FLAT_PRICE = 19.90;
+function legacyAccount(account, now) {
+  return !account?.subscriptionPlanVersion && !account?.paidPlanVersion && Boolean(account?.subscriptionId || entitlement(account, now) || account?.pendingOrder);
+}
 const BLOCK_SIZE = 30;
 const BLOCK_PRICE = 20;
 const MAX_BLOCKS = 100;
@@ -44,4 +49,4 @@ function validTransactionDate(value) {
   return Number.isFinite(parsed.getTime()) && parsed.toISOString().slice(0, 19) === value.slice(0, 19);
 }
 
-module.exports = { FREE, BLOCK_SIZE, BLOCK_PRICE, MAX_BLOCKS, blocks, tier, period, monthAfter, entitlement, paid, validTransactionDate };
+module.exports = { FLAT_PLAN, FLAT_PRICE, legacyAccount, FREE, BLOCK_SIZE, BLOCK_PRICE, MAX_BLOCKS, blocks, tier, period, monthAfter, entitlement, paid, validTransactionDate };

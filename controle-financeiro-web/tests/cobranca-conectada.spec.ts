@@ -3,7 +3,7 @@ import { autenticar } from './support/autenticacao';
 import { LancamentosPage } from './pages/LancamentosPage';
 
 test.skip(!process.env.E2E_BILLING, 'Executar separadamente com integração fictícia configurada.');
-const state = { enabled: true, environment: 'sandbox', usageMode: 'lifetime', admin: false,
+const state = { enabled: true, environment: 'sandbox', usageMode: 'monthly', planVersion: 'flat-v1', unlimited: false, legacy: false, admin: false,
   count: 20, period: 'total', blocks: 0, limit: 20, monthlyPrice: 0, validUntil: null,
   subscriptionId: null, canceled: false, payments: [] };
 
@@ -40,18 +40,16 @@ test('checkout exige aceite e disponibiliza somente link seguro retornado', asyn
   await expect(button).toBeDisabled();
   await page.getByLabel('CPF ou CNPJ para cobrança').fill('24971563792');
   await page.getByRole('checkbox').check();
-  await page.getByRole('button',{name:/Plano Mais: 80 inserções/}).click();
-  await expect(page.getByRole('checkbox')).not.toBeChecked();await expect(button).toBeDisabled();
-  await page.getByRole('checkbox').check(); await button.click();
+  await button.click();
   await expect(page.getByRole('link', { name: /Abrir pagamento no Asaas/ })).toHaveAttribute('href','https://sandbox.asaas.com/i/qa');
-  expect(checkout).toMatchObject({blocks:2,accepted:true,cpfCnpj:'24971563792'});
+  expect(checkout).toMatchObject({planId:'flat-v1',accepted:true,cpfCnpj:'24971563792'});
 });
 test('administrador vê acesso sem limite mesmo após 20 inserções',async({page})=>{
   await page.route('https://billing.example.invalid/functions/*',async route=>{await route.fulfill({json:{result:{...state,admin:true,count:50}}});});
   await autenticar(page);await navegar(page,'/assinatura');
-  await expect(page.getByRole('heading',{name:'Sem limite de inserções'})).toBeVisible();
-  await expect(page.getByRole('progressbar',{name:'Inserções utilizadas'})).toHaveCount(0);
-  await expect(page.getByText(/sem necessidade de contratar um plano/)).toBeVisible();
+  await expect(page.getByRole('heading',{name:'Acesso de administrador'})).toBeVisible();
+  await expect(page.getByRole('progressbar',{name:'Lançamentos gratuitos utilizados no mês'})).toHaveCount(0);
+  await expect(page.getByRole('button',{name:'Continuar para pagamento'})).toBeDisabled();
 });
 
 for (const situacao of ['PENDING', 'APPROVED']) {

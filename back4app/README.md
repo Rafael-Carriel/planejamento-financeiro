@@ -1,3 +1,5 @@
+> Atualização 08/11/2026: a versão em desenvolvimento implementa 20 lançamentos gratuitos por mês e Ilimitado por R$19,90/mês (`flat-v1`). As faixas acumuladas abaixo documentam o contrato legado, preservado apenas para assinaturas existentes. O novo pacote possui seis módulos, incluindo `planeja-analytics.js`. A homologação Pix confirmou contratação, pagamento, cancelamento e vigência; estorno aguarda autorização e cartão de exemplo foi recusado. Não ativar a oferta em produção como se esses cenários estivessem concluídos. Consulte o relatório local de execução e os testes `flat-plan.test.js` e `sandbox-flat-validation.cjs`.
+
 # Mensalidades do Planeora — Asaas + Back4App
 
 > Estado em 20/10/2026: funções planeja publicadas no Back4App; conexão do aplicativo local configurada; proprietário com e-mail verificado vinculado; painel consultou 11 perfis existentes e o histórico de pagamentos sem erro. A tarefa horária compartilhada foi confirmada e executada com status Succeeded. Cobranças e bloqueios seguem desativados por autorização explícita do proprietário; regras novas e site público não foram publicados. Pagamento e renovação reais continuam sem validação.

@@ -15,10 +15,9 @@ for(const width of [320,390,768,1440]){
     await page.setViewportSize({width,height:900});await page.goto('/#/entrar');
     await expect(page.getByRole('img',{name:'Logo Planeora'})).toBeVisible();
     const marca=page.locator('.entrada-marca-texto');await expect(marca).toContainText('Planeora');
-    await expect(page.getByRole('button',{name:'Ver como adicionar ao dispositivo',exact:true})).toBeVisible();
+    await expect(page.getByRole('region',{name:'Aplicativo Planeora'})).toHaveCount(0);
     await autenticar(page);await navegar(page,'/assinatura');
-    const mais=page.getByRole('button',{name:/Plano Mais: 80 inserções/});await mais.click();
-    await expect(mais).toHaveAttribute('aria-pressed','true');await expect(page.locator('.checkout-preco')).toContainText('40,00');
+    await expect(page.locator('.checkout-preco')).toContainText('19,90');
     await expect(page.getByRole('spinbutton')).toHaveCount(0);
     for(const tema of ['light','dark']){
       // Toggle through the same user-facing control used in production.
@@ -42,15 +41,15 @@ for(const width of [320,390,768,1440]){
       expect(await contraste(page,'.ajuda-perguntas a')).toBeGreaterThanOrEqual(4.5);
       expect(await contraste(page,'.sac-chamados p')).toBeGreaterThanOrEqual(4.5);
       expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
-      await page.reload();await expect(page.locator('html')).toHaveAttribute('data-theme',tema);
+      await page.reload();await expect(page.getByRole('heading',{name:'Central de ajuda'})).toBeVisible();await expect(page.locator('html')).toHaveAttribute('data-theme',tema);
       if(process.env.PLANEJA_PREVIEW_DIR&&width===390)await page.screenshot({path:join(process.env.PLANEJA_PREVIEW_DIR,`sac-${tema}.png`),fullPage:true});
-      await navegar(page,'/assinatura');
+      await navegar(page,'/assinatura');await expect(page.locator('.checkout-preco')).toBeVisible();
     }
   });
 }
 
 test('instalação mostra orientações e só oferece o instalador quando disponível',async({page})=>{
-  await page.goto('/#/entrar');
+  await page.goto('/#/conheca');
   await page.getByRole('button',{name:'Ver como adicionar ao dispositivo',exact:true}).click();
   await expect(page.getByRole('heading',{name:'Escolha seu dispositivo'})).toBeVisible();
   await expect(page.getByText('iPhone ou iPad',{exact:true})).toBeVisible();

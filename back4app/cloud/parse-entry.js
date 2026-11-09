@@ -15,7 +15,7 @@ function dispatch(method, path, request) {
   return new Promise((resolve, reject) => {
     const chain = handlers.get(`${method} /billing${path}`);
     if (!chain) return reject(new Error('Operação inválida.'));
-    const req = { body: request.params.data || {}, query: request.params.query || {},
+    const req = { ip: request.ip, body: request.params.data || {}, query: request.params.query || {},
       get: name => name === 'authorization' ? `Bearer ${request.params.firebaseToken || ''}` : undefined };
     const res = { json: resolve };
     let index = 0;
@@ -32,6 +32,7 @@ return { dispatch, reconcile: () => getService().reconcile() };
 }
 const dispatcher = createDispatcher(initialize);
 const operations = {
+  planejaEvent: ['POST', '/events'], planejaFunnel: ['GET', '/admin/funnel'],
   planejaMe: ['GET', '/me'], planejaCheckout: ['POST', '/checkout'],
   planejaCreateTransaction: ['POST', '/transactions'], planejaCancel: ['POST', '/cancel'],
   planejaSync: ['POST', '/sync'], planejaAdminUsers: ['GET', '/admin/users'],
@@ -46,5 +47,5 @@ if (typeof Parse !== 'undefined') for (const [name, [method, path]] of Object.en
     }
   });
 }
-if (typeof Parse !== 'undefined') Parse.Cloud.define('planejaHealth', () => ({ service: 'planeja-billing', version: 1, counting: 'lifetime' }));
+if (typeof Parse !== 'undefined') Parse.Cloud.define('planejaHealth', () => ({ service: 'planeja-billing', version: 2, availablePlan: 'flat-v1', counting: 'per-account' }));
 module.exports = { ...dispatcher, createDispatcher };

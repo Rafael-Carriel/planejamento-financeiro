@@ -1,36 +1,18 @@
-import { ProvedorDeLembretes } from './contextos/ContextoLembretes';
+import { PreferenciasMedicao } from './componentes/PreferenciasMedicao';
+import { lazy, Suspense } from 'react';
+const AreaAutenticada = lazy(() => import('./AreaAutenticada'));
 import { ProvedorDeTema } from './contextos/ContextoTema';
 import { ProvedorDeInstalacao } from './contextos/ContextoInstalacao';
 import { Atendimento } from './paginas/Atendimento';
-import { HashRouter, Navigate, Route, Routes, useLocation } from 'react-router-dom';
+import { HashRouter, Route, Routes, useLocation } from 'react-router-dom';
 import { Apresentacao } from './paginas/Apresentacao';
 
-import { Layout } from './componentes/Layout';
 import { Carregando } from './componentes/Estados';
 import { ProvedorDeAutenticacao, useAutenticacao } from './contextos/ContextoAutenticacao';
-import { ProvedorDeDados } from './contextos/ContextoDados';
 import { ProvedorDeRepositorios } from './contextos/ContextoRepositorios';
-import { ProvedorDeLancamento } from './contextos/ContextoLancamento';
 import { ProvedorDeMes } from './contextos/ContextoMes';
-import { Categorias } from './paginas/Categorias';
-import { Despesas } from './paginas/Despesas';
-import { Dividas } from './paginas/Dividas';
 import { Entrada } from './paginas/Entrada';
-import { Historico } from './paginas/Historico';
-import { Lembretes } from './paginas/Lembretes';
-import { Objetivos } from './paginas/Objetivos';
-import { Painel } from './paginas/Painel';
-import { Planejamento } from './paginas/Planejamento';
-import { Previsao } from './paginas/Previsao';
-import { Receitas } from './paginas/Receitas';
-import { Recorrencias } from './paginas/Recorrencias';
-import { Relatorios } from './paginas/Relatorios';
-import { ReservaEmergencia } from './paginas/ReservaEmergencia';
-import { Assinatura } from './paginas/Assinatura';
-import { Administracao } from './paginas/Administracao';
-import { ProvedorDeAssinatura } from './contextos/ContextoAssinatura';
-import { DocumentosLegais, Privacidade } from './paginas/Privacidade';
-import { Instalacao } from './paginas/Instalacao';
+import { DocumentosLegais } from './paginas/Privacidade';
 import { ConfirmacaoGoogle } from './componentes/ConfirmacaoGoogle';
 
 /// Montagem do app.
@@ -50,42 +32,12 @@ function Portao() {
   if (!usuario) return pathname === '/' ? <Apresentacao /> : <Entrada key={pathname} modoInicial={pathname === '/criar-conta' ? 'criar' : 'entrar'} />;
   if (aceiteGooglePendente) return <ConfirmacaoGoogle />;
 
-  return (
-    <ProvedorDeAssinatura key={usuario.uid}>
-    <ProvedorDeDados>
-      <ProvedorDeLembretes><ProvedorDeLancamento>
-        <Routes>
-          <Route element={<Layout />}>
-            <Route index element={<Painel />} />
-            <Route path="atendimento" element={<Atendimento integrado />} />
-            <Route path="instalar" element={<Instalacao />} />
-            <Route path="receitas" element={<Receitas />} />
-            <Route path="despesas" element={<Despesas />} />
-            <Route path="recorrencias" element={<Recorrencias />} />
-            <Route path="previsao" element={<Previsao />} />
-            <Route path="categorias" element={<Categorias />} />
-            <Route path="dividas" element={<Dividas />} />
-            <Route path="planejamento" element={<Planejamento />} />
-            <Route path="historico" element={<Historico />} />
-            <Route path="lembretes" element={<Lembretes />} />
-            <Route path="relatorios" element={<Relatorios />} />
-            <Route path="reserva-emergencia" element={<ReservaEmergencia />} />
-            <Route path="objetivos" element={<Objetivos />} />
-            <Route path="assinatura" element={<Assinatura />} />
-            <Route path="admin" element={<Administracao />} />
-            <Route path="privacidade" element={<Privacidade />} />
-            <Route path="*" element={<Navigate to="/" replace />} />
-          </Route>
-        </Routes>
-      </ProvedorDeLancamento></ProvedorDeLembretes>
-    </ProvedorDeDados>
-    </ProvedorDeAssinatura>
-  );
+  return <AreaAutenticada key={usuario.uid} />;
 }
 
 export default function App() {
   return (
-    <ProvedorDeTema><ProvedorDeInstalacao><HashRouter>
+    <Suspense fallback={<Carregando mensagem="Abrindo o Planeora…" />}><ProvedorDeTema><ProvedorDeInstalacao><HashRouter><PreferenciasMedicao />
       <ProvedorDeAutenticacao>
         <ProvedorDeMes>
           <ProvedorDeRepositorios>
@@ -98,6 +50,6 @@ export default function App() {
           </ProvedorDeRepositorios>
         </ProvedorDeMes>
       </ProvedorDeAutenticacao>
-    </HashRouter></ProvedorDeInstalacao></ProvedorDeTema>
+    </HashRouter></ProvedorDeInstalacao></ProvedorDeTema></Suspense>
   );
 }

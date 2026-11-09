@@ -1,3 +1,4 @@
+import { PrimeirosPassos } from '../componentes/PrimeirosPassos';
 import {
   DndContext,
   KeyboardSensor,
@@ -388,7 +389,7 @@ function ConteudoDoPainel() {
       )}
       <button
         type="button"
-        className={editando ? 'botao botao-principal' : 'botao botao-contorno'}
+        className={editando ? 'botao botao-principal' : 'botao botao-contorno acao-personalizar'}
         onClick={() => definirEditando(!editando)}
         aria-pressed={editando}
       >
@@ -410,26 +411,14 @@ function ConteudoDoPainel() {
         acoes={acoes}
       />
 
-      <div className="pagina">
+      <div className="pagina pagina-painel">
+        {!carregando && <PrimeirosPassos />}
         {erro ? <FaixaDeErro mensagem={erro} /> : null}
 
         {carregando ? (
           <Carregando mensagem="Buscando os lançamentos do mês…" />
         ) : (
           <>
-            {mesVazio ? (
-              <section className="cartao">
-                <div className="cartao-corpo">
-                  <p className="texto-apoio" style={{ margin: 0 }}>
-                    💡 <strong>Bem-vindo ao Painel!</strong> Aqui você vê tudo do mês de uma vez:
-                    o que entrou, o que saiu e o que ainda está previsto. Comece clicando em
-                    <strong> "+ Receita"</strong> ou <strong>"+ Despesa"</strong> para registrar
-                    seus primeiros lançamentos.
-                  </p>
-                </div>
-              </section>
-            ) : null}
-
             {editando ? (
               <div className="aviso aviso-edicao-painel">
                 <span aria-hidden="true">🛠️</span>

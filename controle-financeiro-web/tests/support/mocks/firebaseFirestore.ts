@@ -85,7 +85,8 @@ function dividir(caminho) {
 function aplicarSemente() {
   if (sementeAplicada) return;
   sementeAplicada = true;
-  const semente = window.__E2E_SEED__;
+  const saved = window.__E2E_PERSIST__ ? sessionStorage.getItem('e2e:firestore') : null;
+  const semente = saved ? JSON.parse(saved) : window.__E2E_SEED__;
   if (!Array.isArray(semente)) return;
   for (const item of semente) {
     const corte = item.path.lastIndexOf('/');
@@ -183,6 +184,15 @@ function snapshotConsulta(caminho, docs) {
 }
 
 function notificar(caminho) {
+  if (window.__E2E_PERSIST__) {
+    const rows = [];
+    for (const [collection, documents] of colecoes) {
+      for (const [id, data] of documents) rows.push({path: collection + '/' + id, data});
+    }
+    sessionStorage.setItem('e2e:firestore', JSON.stringify(rows, function(_key, value) {
+      return value instanceof Timestamp ? {__date: value.toDate().toISOString()} : value;
+    }));
+  }
   const alvos = inscritos.get(caminho);
   if (alvos) alvos.forEach(function (fn) { fn(); });
 }

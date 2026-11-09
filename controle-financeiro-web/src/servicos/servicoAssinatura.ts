@@ -13,13 +13,14 @@ export interface Pagamento {
 }
 export interface Assinatura {
   enabled: boolean; environment: 'sandbox' | 'production'; usageMode: 'monthly' | 'lifetime';
-  admin: boolean; count: number; period: string; blocks: number; limit: number;
+  admin: boolean; count: number; period: string; blocks: number; limit: number | null;
+  planVersion?: string; legacy?: boolean; unlimited?: boolean;
   monthlyPrice: number; validUntil: string | null; subscriptionId: string | null;
   canceled: boolean; payments: Pagamento[];
 }
 export interface UsuarioAdministrado {
   uid: string; email: string; name: string; disabled: boolean; createdAt: string;
-  lastSignIn: string | null; admin: boolean; count: number; blocks: number; limit: number;
+  lastSignIn: string | null; admin: boolean; count: number; blocks: number; limit: number | null;
   price: number; validUntil: string | null; canceled: boolean;
 }
 
@@ -30,7 +31,7 @@ export async function chamarCobranca<T>(path: string, body?: unknown): Promise<T
   const [resource, search] = path.split('?');
   const operations: Record<string, string> = { '/me': 'planejaMe', '/checkout': 'planejaCheckout', '/transactions': 'planejaCreateTransaction',
     '/cancel': 'planejaCancel', '/sync': 'planejaSync', '/admin/users': 'planejaAdminUsers', '/admin/payments': 'planejaAdminPayments',
-    '/admin/asaas-status': 'planejaAsaasStatus' };
+    '/admin/asaas-status': 'planejaAsaasStatus', '/admin/funnel': 'planejaFunnel' };
   const token = await user.getIdToken();
   const response = await fetch(usaParse ? `${base}/functions/${operations[resource]}` : `${base}/billing${path}`, {
     method: usaParse || body !== undefined ? 'POST' : 'GET',

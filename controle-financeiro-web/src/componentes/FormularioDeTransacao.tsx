@@ -111,6 +111,7 @@ export function FormularioDeTransacao({ transacao, tipoInicial, aoFechar }: Prop
   }
 
   async function gravar(continuar: boolean) {
+    if (salvando) return;
     const resultado = validar();
     if (typeof resultado === 'string') {
       definirErro(resultado);
@@ -251,7 +252,7 @@ export function FormularioDeTransacao({ transacao, tipoInicial, aoFechar }: Prop
           </label>
         </div>
 
-        <label className="campo">
+        <details open={transacao?.observacao ? true : undefined}><summary>Adicionar observação (opcional)</summary><label className="campo">
           <span>Observação (opcional)</span>
           <textarea
             maxLength={500}
@@ -261,7 +262,8 @@ export function FormularioDeTransacao({ transacao, tipoInicial, aoFechar }: Prop
           />
         </label>
 
-        {erro ? <div className="aviso aviso-erro">{erro}</div> : null}
+        </details>
+        {erro ? <div role="alert" className="aviso aviso-erro">{erro}</div> : null}
         {confirmacao && !erro ? <div className="aviso aviso-sucesso">{confirmacao}</div> : null}
 
         {/* Envio pelo Enter. O botão fica escondido porque o rodapé do modal já

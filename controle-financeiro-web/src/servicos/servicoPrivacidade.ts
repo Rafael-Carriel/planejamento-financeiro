@@ -5,7 +5,7 @@ import { chamarCobranca, cobrancaConfigurada } from './servicoAssinatura';
 import { VERSAO_LEGAL } from '../legal';
 export { VERSAO_LEGAL } from '../legal';
 export type TipoSolicitacao = 'acesso' | 'correcao' | 'exclusao' | 'portabilidade' | 'oposicao';
-const colecoes = ['transacoes','categorias','orcamentos','recorrencias','dividas','lembretes','reservaEmergencia','movimentacoesReserva','objetivos','aceitesLegais'];
+const colecoes = ['transacoes','categorias','orcamentos','recorrencias','dividas','lembretes','reservaEmergencia','movimentacoesReserva','objetivos','aceitesLegais','preferencias'];
 export async function exportarDadosPessoais() {
   const usuario = auth.currentUser;
   if (!usuario) throw new Error('Entre na sua conta para exportar seus dados.');

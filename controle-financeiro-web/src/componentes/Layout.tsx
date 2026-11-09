@@ -1,6 +1,6 @@
 import { Icone, type NomeDeIcone } from './Icone';
 import { useTema } from '../contextos/ContextoTema';
-import { useEffect, useRef, useState } from 'react';
+import { Fragment, useEffect, useRef, useState } from 'react';
 import { Link, NavLink, Outlet, useLocation } from 'react-router-dom';
 
 import { useAutenticacao } from '../contextos/ContextoAutenticacao';
@@ -41,6 +41,13 @@ const ITENS: ItemDeNavegacao[] = [
   { para: '/privacidade', rotulo: 'Privacidade e direitos', rotuloCurto: 'Privacidade', icone: 'reserva' },
 ];
 
+function grupo(rota: string) {
+  if (['/', '/previsao', '/lembretes', '/historico', '/relatorios'].includes(rota)) return 'Visão do mês';
+  if (['/receitas', '/despesas', '/categorias', '/recorrencias'].includes(rota)) return 'Movimentações';
+  if (['/dividas', '/planejamento', '/reserva-emergencia', '/objetivos'].includes(rota)) return 'Planejar';
+  return 'Conta e ajuda';
+}
+const GRUPOS = ['Visão do mês', 'Movimentações', 'Planejar', 'Conta e ajuda'];
 const ITENS_PRINCIPAIS = ['/', '/receitas', '/despesas', '/recorrencias'];
 
 export function Layout() {
@@ -90,7 +97,7 @@ export function Layout() {
         {/* Navegação principal */}
         <nav className="navegacao" aria-label="Seções do app">
           <ul className="navegacao-lista" role="list">
-            {itens.map((item) => (
+            {GRUPOS.map(nome => <Fragment key={nome}><li className="navegacao-grupo">{nome}</li>{itens.filter(item => grupo(item.para) === nome).map((item) => (
               <li key={item.para} className="navegacao-item">
                 <NavLink
                   to={item.para}
@@ -106,7 +113,7 @@ export function Layout() {
                   <span className="navegacao-rotulo-curto">{item.rotuloCurto}</span>
                 </NavLink>
               </li>
-            ))}
+            ))}</Fragment>)}
           </ul>
         </nav>
 
@@ -182,8 +189,8 @@ export function Layout() {
 
         <main className="conteudo" role="main">
           <div className="conteudo-conteiner">
-            {assinatura?.enabled && !assinatura.admin && assinatura.count >= assinatura.limit && <div className="assinatura-aviso" role="status">
-              Você utilizou suas {assinatura.limit} inserções. <Link to="/assinatura">Libere mais 30 na sua assinatura.</Link>
+            {assinatura?.enabled && !assinatura.admin && assinatura.limit !== null && assinatura.count >= assinatura.limit && <div className="assinatura-aviso" role="status">
+              Você utilizou os {assinatura.limit} lançamentos disponíveis{assinatura.usageMode === "monthly" ? " neste mês" : " no seu plano"}. <Link to="/assinatura">Conhecer minha assinatura</Link>
             </div>}
             <Outlet />
           </div>
@@ -238,7 +245,7 @@ export function Layout() {
                   aria-hidden="true"
                 />
                 <div className="popover-mais" id="menu-mais" role="menu" aria-label="Mais seções"><div className="menu-mais-titulo">Seu espaço financeiro</div>
-                  {itensSecundarios.map((item) => (
+                  {GRUPOS.map(nome => <Fragment key={nome}><div className="menu-grupo" role="presentation">{nome}</div>{itensSecundarios.filter(item => grupo(item.para) === nome).map((item) => (
                     <NavLink
                       key={item.para}
                       to={item.para}
@@ -253,7 +260,7 @@ export function Layout() {
                       </span>
                       <span className="popover-item-rotulo">{item.rotulo}</span>
                     </NavLink>
-                  ))}
+                  ))}</Fragment>)}
                   <div className="popover-configuracoes">
                     <button type="button" className="popover-item" role="menuitem" onClick={() => { definirMaisAberto(false); definirContaAberta(true); }}>
                       <Icone nome="conta" /> Perfil e configurações

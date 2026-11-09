@@ -1,3 +1,4 @@
+import { ATENDIMENTO } from '../legal';
 import { CabecalhoDaPagina } from '../componentes/CabecalhoDaPagina';
 import { AcoesPublicas } from '../componentes/AcoesPublicas';
 import { useEffect, useState, type FormEvent } from 'react';
@@ -37,7 +38,7 @@ export function Chamados({administrador=false}:{administrador?:boolean}) {
     try {await updateDoc(doc(bancoDeDados,'chamadosAtendimento',item.id),{resposta:respostas[item.id]?.trim()??item.resposta,status:'respondido',atualizadoEm:serverTimestamp()});await carregar();}
     catch {falhar('Não foi possível salvar a resposta.');}finally{ocupar(false);}
   }
-  if(!usuario) return <p><Link to="/">Entre na sua conta</Link> para abrir e acompanhar um atendimento. Se esqueceu a senha, use “Esqueci minha senha” na entrada.</p>;
+  if(!usuario) return <p><Link to="/entrar">Entre na sua conta</Link> para abrir e acompanhar um atendimento. Se esqueceu a senha, use “Esqueci minha senha” na entrada.</p>;
   return <section className="sac-chamados"><h2>{administrador?'SAC — últimos 100 atendimentos':'Seus atendimentos'}</h2>
     {!administrador&&<form onSubmit={e=>void enviar(e)}><p>O atendimento é feito pelo Planeora. Não envie senhas, códigos de acesso ou dados completos de cartão.</p>
       <label className="campo">Assunto<select value={assunto} onChange={e=>definirAssunto(e.target.value)}>{['Suporte','Pagamento e cancelamento','Privacidade e dados','Reclamação'].map(a=><option key={a}>{a}</option>)}</select></label>
@@ -56,8 +57,8 @@ export function Chamados({administrador=false}:{administrador?:boolean}) {
 export function Atendimento({integrado=false}:{integrado?:boolean}) {
   return <>{integrado && <CabecalhoDaPagina titulo="Central de ajuda" descricao="Estamos aqui para ajudar você." comSeletorDeMes={false} />}<div className={integrado ? "pagina pagina-atendimento atendimento-integrado" : "documento-legal pagina-atendimento"}>
     {!integrado && <><AcoesPublicas /><span className="publico-selo">CENTRAL DE AJUDA</span><h1>SAC do Planeora</h1></>}
-    <div className="ajuda-introducao"><span className="publico-selo">VAMOS RESOLVER JUNTOS</span><h2>Como podemos ajudar?</h2><p>Encontre uma resposta rápida ou fale com nossa equipe. Seus pedidos ficam reunidos aqui.</p></div><div className="ajuda-grade"><section className="ajuda-perguntas"><h2>Perguntas frequentes</h2>
-    <details><summary>Como funciona a mensalidade?</summary><p>20 inserções acumuladas de receitas e despesas são gratuitas. Cada bloco adicional de 30 custa R$20 por mês quando a contratação estiver habilitada. Apagar registros não devolve inserções.</p></details>
+    <div className="ajuda-introducao"><span className="publico-selo">VAMOS RESOLVER JUNTOS</span><h2>Como podemos ajudar?</h2><p>Encontre uma resposta rápida ou fale com nossa equipe. Seus pedidos ficam reunidos aqui.</p></div><section className="ajuda-contato"><h2>Precisa de ajuda para acessar?</h2><p>Você também pode falar com o Planeora sem entrar na conta: <a href={`mailto:${ATENDIMENTO.email}`}>{ATENDIMENTO.email}</a>.</p><p>Não envie senhas, códigos de acesso ou dados completos de cartão. Informe apenas o problema e como podemos ajudar.</p></section><div className="ajuda-grade"><section className="ajuda-perguntas"><h2>Perguntas frequentes</h2>
+    <details><summary>Como funciona a mensalidade?</summary><p>O plano gratuito inclui 20 lançamentos por mês. O Ilimitado custa R$19,90/mês e libera novos registros sem limite após confirmação do pagamento. Planos antigos mantêm as condições contratadas.</p></details>
     <details><summary>Como cancelo ou peço reembolso?</summary><p>Cancele a renovação em Assinatura. Para dúvidas ou pedido de reembolso, abra um atendimento em “Pagamento e cancelamento”. O pedido será analisado conforme os direitos aplicáveis.</p></details>
     <details><summary>Como baixo ou excluo meus dados?</summary><p>Acesse <Link to="/privacidade">Privacidade e direitos</Link> para exportar dados e solicitar exclusão. A exclusão depende de verificação e eventuais obrigações legais de conservação.</p></details>
     </section><Chamados/></div><nav className="links-legais"><Link to="/politica-de-privacidade">Privacidade</Link><Link to="/termos-de-uso">Termos de Uso</Link></nav>

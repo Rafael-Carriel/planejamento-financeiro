@@ -30,10 +30,19 @@ service cloud.firestore {
       // Preserve the legacy owner's right to remove their own profile.
       allow delete: if ehDono(uid);
 
+      match /preferencias/{id} {
+        allow read: if ehDono(uid);
+        allow create, update: if ehDono(uid) && id == 'inicio'
+          && request.resource.data.keys().hasOnly(['oculto', 'saldoVisto', 'atualizadoEm'])
+          && request.resource.data.oculto is bool && request.resource.data.saldoVisto is bool
+          && request.resource.data.atualizadoEm == request.time;
+        allow delete: if ehDono(uid);
+      }
+
       match /aceitesLegais/{versao} {
         allow read: if ehDono(uid);
         allow create: if ehDono(uid) && request.resource.data.keys().hasOnly(['versao','termosAceitos','privacidadeLida','criadoEm'])
-          && request.resource.data.versao == versao && versao == '2026-10-20'
+          && request.resource.data.versao == versao && versao in ['2026-10-20', '2026-11-07']
           && request.resource.data.termosAceitos == true && request.resource.data.privacidadeLida == true
           && request.resource.data.criadoEm == request.time;
         allow update, delete: if false;
@@ -139,7 +148,7 @@ service cloud.firestore {
         && request.resource.data.uid == request.auth.uid
         && request.resource.data.tipo in ['acesso','correcao','exclusao','portabilidade','oposicao']
         && request.resource.data.mensagem is string && request.resource.data.mensagem.size() <= 1000
-        && request.resource.data.status == 'recebida' && request.resource.data.versao == '2026-10-20'
+        && request.resource.data.status == 'recebida' && request.resource.data.versao in ['2026-10-20', '2026-11-07']
         && request.resource.data.criadoEm == request.time;
       allow update: if donoAdministrativo()
         && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status','atualizadoEm'])

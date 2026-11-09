@@ -2,7 +2,7 @@ import { defineConfig, loadEnv } from 'vite';
 import { execFileSync } from 'node:child_process';
 import react from '@vitejs/plugin-react';
 import { VitePWA } from 'vite-plugin-pwa';
-import { ATENDIMENTO } from './src/legal';
+import { ATENDIMENTO, VERSAO_LEGAL } from './src/legal';
 
 // Configuração do Vite. `base: './'` deixa o build funcionar tanto no Firebase
 // Hosting quanto aberto de uma subpasta qualquer.
@@ -15,7 +15,7 @@ export default defineConfig(({command,mode}) => {
       generateBundle(){
         const env=loadEnv(mode,process.cwd(),'VITE_');
         const revision=execFileSync('git',['rev-parse','HEAD'],{encoding:'utf8'}).trim();
-        this.emitFile({type:'asset',fileName:'release.json',source:JSON.stringify({app:'Planeora',mode,projectId:env.VITE_FIREBASE_PROJECT_ID,revision,builtAt:new Date().toISOString(),legalVersion:'2026-10-20',supportConfigured:Boolean(ATENDIMENTO.nome&&ATENDIMENTO.rota)})});
+        this.emitFile({type:'asset',fileName:'release.json',source:JSON.stringify({app:'Planeora',mode,projectId:env.VITE_FIREBASE_PROJECT_ID,revision,builtAt:new Date().toISOString(),legalVersion:VERSAO_LEGAL,supportConfigured:Boolean(ATENDIMENTO.nome&&ATENDIMENTO.rota)})});
       },
     },
     react(),

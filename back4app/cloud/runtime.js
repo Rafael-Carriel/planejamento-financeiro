@@ -11,7 +11,7 @@ function initialize(app) {
     if (credentials.project_id !== 'controle-financeiro-rafael') throw new Error('Projeto Firebase divergente.');
     firebaseApp = admin.initializeApp({ credential: admin.credential.cert(credentials) }, 'planeja-billing');
   }
-  const env = { ...process.env, USAGE_MODE: 'lifetime', ADMIN_EMAIL: 'rafaelcarriel.deo@gmail.com',
+  const env = { ...process.env, USAGE_MODE: 'lifetime', BILLING_MODEL: 'flat-v1', ADMIN_EMAIL: 'rafaelcarriel.deo@gmail.com',
     ASAAS_ENV: process.env.ASAAS_ENV || 'production',
     ASAAS_API_KEY: process.env.ASAAS_API_KEY || Buffer.from(process.env.ASAAS_API_KEY_BASE64 || '', 'base64').toString('utf8') };
   service = mount(app, { db: admin.firestore(firebaseApp), auth: admin.auth(firebaseApp), asaas: client(env), env });
